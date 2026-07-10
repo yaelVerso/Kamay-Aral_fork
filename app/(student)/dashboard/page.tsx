@@ -54,7 +54,7 @@ export default async function DashboardPage() {
                 <ProgressRing percent={percent} size={52} strokeWidth={5} />
               </div>
               <div>
-                <p className="font-extrabold text-white text-lg">{mod.title}</p>
+                <p className="font-extrabold text-white text-xl">{mod.title}</p>
                 <p className="text-xs text-[#fafafabd] mt-0.5">
                   {hasContent ? `${mod.subModules.length} sections` : 'Coming soon'}
                 </p>
