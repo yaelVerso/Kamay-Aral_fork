@@ -54,7 +54,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {mod.subModules.map((sm, idx) => {
           const attempt = quizAttempt(sm.id)
           const quizEnabled = isQuizEnabled(sm.id)
@@ -72,14 +72,14 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
                 <div className="grid grid-cols-2 gap-5">
                   <Link
                     href={`/module/${moduleId}/${sm.id}/learn`}
-                    className="flex flex-row items-center justify-center gap-1 rounded-xl bg-[#FCCF52] p-2 text-[#694B26] text-sm font-bold active:scale-95 transition-transform"
+                    className="flex flex-row items-center justify-center gap-1 rounded-xl bg-[#FCCF52] p-2 text-[#694B26] text-sm font-bold hover:bg-[#FFC31E] active:scale-95 transition-transform"
                   >
                     <span className="text-lg">📖</span>
                     Learn
                   </Link>
                   <Link
                     href={`/module/${moduleId}/${sm.id}/activity`}
-                    className="flex flex-row items-center justify-center gap-1 rounded-xl bg-[#FFA93C] p-2 text-white text-sm font-bold active:scale-95 transition-transform"
+                    className="flex flex-row items-center justify-center gap-1 rounded-xl bg-[#FFA93C] p-2 text-white text-sm font-bold hover:bg-[#FF9A1A] active:scale-95 transition-transform"
                   >
                     <span className="text-lg">🎮</span>
                     Activity
@@ -98,13 +98,13 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
                   ) : attempt ? (
                     <div className="flex items-center justify-between rounded-xl bg-muted px-3 py-2.5 text-sm">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <CheckCircle2 className="h-4 w-4 text-[#579F10]" />
                         Quiz completed
                       </div>
-                      <span className="font-bold text-indigo-600">{attempt.score}/{attempt.total}</span>
+                      <span className="font-bold text-[#007B89]">{attempt.score}/{attempt.total}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 rounded-xl bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5 rounded-xl bg-[#CFC2B5] px-3 py-2.5 text-sm text-white">
                       <Lock className="h-4 w-4" />
                       Quiz not available yet
                     </div>
