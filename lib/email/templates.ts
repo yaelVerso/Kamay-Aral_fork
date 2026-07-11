@@ -27,13 +27,12 @@ export async function sendTeacherInviteEmail(email: string, fullName: string, li
   })
 }
 
-export async function sendStudentInviteEmail(email: string, studentName: string, username: string, link: string) {
+export async function sendStudentInviteEmail(email: string, studentName: string, link: string) {
   const html = wrapper(
     'A student account has been created',
     `
       <p>Hi,</p>
       <p>A student account for <strong>${studentName}</strong> has been created on Kamay Aral.</p>
-      <p>Username: <strong>${username}</strong></p>
       <p>Click the link below to set the account's password.</p>
       <p><a href="${link}">Set password</a></p>
     `,

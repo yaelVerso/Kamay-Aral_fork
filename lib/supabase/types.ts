@@ -16,9 +16,9 @@ export type Database = {
         Relationships: []
       }
       students: {
-        Row: { id: string; section_id: string | null; full_name: string; username: string | null; email: string | null; first_name: string | null; last_name: string | null; created_at: string }
-        Insert: { id: string; section_id?: string | null; full_name: string; username?: string | null; email?: string | null; first_name?: string | null; last_name?: string | null; created_at?: string }
-        Update: { id?: string; section_id?: string | null; full_name?: string; username?: string | null; email?: string | null; first_name?: string | null; last_name?: string | null; created_at?: string }
+        Row: { id: string; section_id: string | null; full_name: string; email: string | null; first_name: string | null; last_name: string | null; created_at: string }
+        Insert: { id: string; section_id?: string | null; full_name: string; email?: string | null; first_name?: string | null; last_name?: string | null; created_at?: string }
+        Update: { id?: string; section_id?: string | null; full_name?: string; email?: string | null; first_name?: string | null; last_name?: string | null; created_at?: string }
         Relationships: []
       }
       learn_progress: {

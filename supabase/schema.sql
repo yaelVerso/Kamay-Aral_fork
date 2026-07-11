@@ -69,7 +69,6 @@ create table public.students (
   full_name text not null,
   first_name text,
   last_name text,
-  username text unique,
   email text,
   created_at timestamptz not null default now()
 );

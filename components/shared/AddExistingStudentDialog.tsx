@@ -19,7 +19,7 @@ import { addExistingStudentToSectionAction } from '@/app/actions/admin'
 interface UnassignedStudent {
   id: string
   full_name: string
-  username: string | null
+  email: string | null
 }
 
 export default function AddExistingStudentDialog({ sectionId }: { sectionId: string }) {
@@ -37,7 +37,7 @@ export default function AddExistingStudentDialog({ sectionId }: { sectionId: str
       const supabase = createClient()
       const { data, error } = await supabase
         .from('students')
-        .select('id, full_name, username')
+        .select('id, full_name, email')
         .is('section_id', null)
         .order('full_name')
       if (error) throw error
@@ -66,7 +66,7 @@ export default function AddExistingStudentDialog({ sectionId }: { sectionId: str
   const filtered = students.filter((s) => {
     const q = query.trim().toLowerCase()
     if (!q) return true
-    return s.full_name.toLowerCase().includes(q) || s.username?.toLowerCase().includes(q)
+    return s.full_name.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
   })
 
   return (
@@ -100,7 +100,7 @@ export default function AddExistingStudentDialog({ sectionId }: { sectionId: str
             >
               <div>
                 <p className="text-sm font-medium">{student.full_name}</p>
-                <p className="text-xs text-muted-foreground">@{student.username ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">{student.email ?? '—'}</p>
               </div>
               <Button
                 size="sm"

@@ -33,7 +33,7 @@ export default function LoginPage() {
       const email = identifier.trim()
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw new Error('Incorrect email/username or password')
+      if (error) throw new Error('Incorrect email or password')
 
       router.push(destinationFor(data.user.user_metadata?.role))
       router.refresh()

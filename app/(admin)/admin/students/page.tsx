@@ -7,7 +7,7 @@ export default async function AdminStudentsPage() {
 
   const { data: students } = await supabase
     .from('students')
-    .select('id, full_name, username, section_id')
+    .select('id, full_name, email, section_id')
     .order('full_name')
 
   const sectionIds = [...new Set((students ?? []).map((s) => s.section_id).filter((id): id is string => !!id))]
@@ -23,7 +23,7 @@ export default async function AdminStudentsPage() {
   const studentList = (students ?? []).map((s) => ({
     id: s.id,
     full_name: s.full_name,
-    username: s.username,
+    email: s.email,
     sectionName: sectionName(s.section_id),
   }))
 

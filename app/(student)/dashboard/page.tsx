@@ -9,7 +9,7 @@ export default async function DashboardPage() {
 
   const { data: student } = await supabase
     .from('students')
-    .select('full_name')
+    .select('first_name, full_name')
     .eq('id', user!.id)
     .single()
 
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     <div className="px-4 pt-8 pb-4">
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">Welcome back,</p>
-        <h1 className="text-3xl text-[#694B26] font-black">{student?.full_name ?? 'Student'} 👋</h1>
+        <h1 className="text-3xl text-[#694B26] font-black">{student?.first_name ?? student?.full_name ?? 'Student'} 👋</h1>
       </div>
 
       <h2 className="mb-3 text-base font-semibold text-muted-foreground uppercase tracking-wide">

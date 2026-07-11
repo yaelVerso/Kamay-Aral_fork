@@ -8,7 +8,7 @@ import { Search } from 'lucide-react'
 interface Student {
   id: string
   full_name: string
-  username: string | null
+  email: string | null
   sectionName: string | null
 }
 
@@ -19,7 +19,7 @@ export default function StudentSearchList({ students }: { students: Student[] })
     const q = query.trim().toLowerCase()
     if (!q) return students
     return students.filter(
-      (s) => s.full_name.toLowerCase().includes(q) || s.username?.toLowerCase().includes(q),
+      (s) => s.full_name.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q),
     )
   }, [students, query])
 
@@ -49,7 +49,7 @@ export default function StudentSearchList({ students }: { students: Student[] })
               <div>
                 <p className="font-semibold">{student.full_name}</p>
                 <p className="text-sm text-muted-foreground">
-                  @{student.username ?? '—'} · {student.sectionName ?? 'Unassigned'}
+                  {student.email ?? '—'} · {student.sectionName ?? 'Unassigned'}
                 </p>
               </div>
             </div>

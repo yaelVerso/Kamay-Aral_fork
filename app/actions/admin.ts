@@ -57,7 +57,6 @@ export async function createTeacherAction(payload: {
 export async function createStudentAction(payload: {
   firstName: string
   lastName: string
-  username: string
   email: string
   sectionId?: string | null
 }) {
@@ -82,7 +81,6 @@ export async function createStudentAction(payload: {
   const firstName = payload.firstName.trim()
   const lastName = payload.lastName.trim()
   const fullName = `${firstName} ${lastName}`.trim()
-  const username = payload.username.trim().toLowerCase()
   const email = payload.email.trim()
 
   const admin = createAdminClient()
@@ -102,7 +100,6 @@ export async function createStudentAction(payload: {
     full_name: fullName,
     first_name: firstName,
     last_name: lastName,
-    username,
     email,
   })
   if (studentError) {
@@ -111,7 +108,7 @@ export async function createStudentAction(payload: {
   }
 
   try {
-    await sendStudentInviteEmail(email, fullName, username, linkData.properties.action_link)
+    await sendStudentInviteEmail(email, fullName, linkData.properties.action_link)
   } catch {
     throw new Error('Account created but invite email failed to send. Use Resend Invite to try again.')
   }

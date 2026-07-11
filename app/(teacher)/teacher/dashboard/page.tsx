@@ -8,6 +8,12 @@ export default async function TeacherDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const { data: teacher } = await supabase
+    .from('teachers')
+    .select('first_name, full_name')
+    .eq('id', user!.id)
+    .single()
+
   const { data: sections } = await supabase
     .from('sections')
     .select('id, name')
@@ -48,7 +54,7 @@ export default async function TeacherDashboardPage() {
       <div>
         <p className="text-sm text-muted-foreground">Welcome back,</p>
         <h1 className="text-2xl font-bold">
-          {user?.user_metadata?.full_name ?? 'Teacher'} 👋
+          {teacher?.first_name ?? teacher?.full_name ?? user?.user_metadata?.full_name ?? 'Teacher'} 👋
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">Here&apos;s an overview of your sections and student performance.</p>
       </div>
