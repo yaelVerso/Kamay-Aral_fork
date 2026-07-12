@@ -30,7 +30,7 @@ export default function SignToPicture({ item, distractors, onNext }: Props) {
   const correct = selected === item.id
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:w-3/4 lg:mx-auto">
       <p className="text-center text-xl font-semibold uppercase tracking-widest text-muted-foreground">
         What sign is this?
       </p>

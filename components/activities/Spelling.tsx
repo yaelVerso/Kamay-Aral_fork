@@ -37,7 +37,7 @@ export default function Spelling({ item, onNext }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:w-3/4 lg:mx-auto">
       <p className="text-center text-xl font-semibold uppercase tracking-widest text-muted-foreground">
         Type what sign this is
       </p>

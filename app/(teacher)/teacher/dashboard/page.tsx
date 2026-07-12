@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MODULES } from '@/content/registry'
 import Link from 'next/link'
 import { Users, AlertTriangle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function TeacherDashboardPage() {
   const supabase = await createClient()
@@ -32,10 +32,10 @@ export default async function TeacherDashboardPage() {
 
   const { data: attempts } = studentIds.length > 0
     ? await supabase
-        .from('quiz_attempts')
-        .select('student_id, score, total')
-        .in('student_id', studentIds)
-        .not('submitted_at', 'is', null)
+      .from('quiz_attempts')
+      .select('student_id, score, total')
+      .in('student_id', studentIds)
+      .not('submitted_at', 'is', null)
     : { data: [] }
 
   const needsAttention = new Set<string>()
@@ -56,35 +56,38 @@ export default async function TeacherDashboardPage() {
         <h1 className="text-2xl font-bold">
           {teacher?.first_name ?? teacher?.full_name ?? user?.user_metadata?.full_name ?? 'Teacher'} 👋
         </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Here&apos;s an overview of your sections and student performance.</p>
+        <p className="text-muted-foreground text-sm mt-5">Here&apos;s an overview of your sections and student performance.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="bg-[#FDEFCA] shadow-[0_4px_0_#EFD385] ring-0 px-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Sections</CardTitle>
+            <CardTitle className="text-lg font-bold text-[#694B26]">Sections</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{sections?.length ?? 0}</p>
+            <p className="text-4xl font-black text-[#694B26]">{sections?.length ?? 0}</p>
+            <p className="text-sm font-medium text-muted-foreground mt-6 my-2">Active Classes</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#FDEFCA] shadow-[0_4px_0_#EFD385] ring-0 px-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Students</CardTitle>
+            <CardTitle className="text-lg font-bold text-[#694B26]">Students</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{studentCounts?.length ?? 0}</p>
+            <p className="text-4xl font-black text-[#694B26]">{studentCounts?.length ?? 0}</p>
+            <p className="text-sm font-medium text-muted-foreground mt-6 my-2">Total Students</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-[#FDEFCA] shadow-[0_4px_0_#EFD385] ring-0 px-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+            <CardTitle className="text-lg font-bold text-[#694B26] flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
               Need Attention
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-amber-600">{needsAttention.size}</p>
+            <p className="text-4xl font-black text-amber-600">{needsAttention.size}</p>
+            <p className="text-sm font-medium text-muted-foreground mt-6 my-2">No. of Struggling Students</p>
           </CardContent>
         </Card>
       </div>
@@ -92,7 +95,7 @@ export default async function TeacherDashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Your Sections</h2>
-          <Link href="/teacher/sections" className="text-sm text-indigo-600 hover:underline">
+          <Link href="/teacher/sections" className="text-sm text-[#0BC2D7] font-semibold hover:underline">
             Manage →
           </Link>
         </div>

@@ -64,7 +64,7 @@ export default function DragDropMatch({ items, onNext }: Props) {
   const score = submitted ? items.filter((item) => matches[item.id] === item.id).length : 0
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:w-3/4 lg:mx-auto">
       <p className="text-center text-xl font-semibold uppercase tracking-widest text-muted-foreground">
         Match the sign to the picture
       </p>
