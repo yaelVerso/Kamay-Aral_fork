@@ -24,6 +24,8 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { pathname } = request.nextUrl
 
   function destinationFor(role: string | undefined) {
@@ -32,32 +34,14 @@ export async function updateSession(request: NextRequest) {
     return '/dashboard'
   }
 
-  function hasSessionCookie() {
-    return request.cookies.getAll().some(({ name }) => name.includes('auth-token') || name.includes('sb-'))
-  }
-
   // /setup-password relies on the temporary session created by an invite/recovery
   // link, so it must stay accessible whether or not `user` is set — never bounce.
   if (pathname === '/setup-password') {
     return supabaseResponse
   }
 
-  const hasAuthCookie = hasSessionCookie()
-
-  // Root path always sends signed-in users to their role's landing page.
-  // For unauthenticated users, redirect immediately to avoid an extra auth round-trip.
-  if (pathname === '/' && !hasAuthCookie) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
   // Routes that don't require auth
   const publicRoutes = ['/login', '/forgot-password']
-  if (publicRoutes.includes(pathname) && !hasAuthCookie) {
-    return supabaseResponse
-  }
-
-  const { data: { user } } = await supabase.auth.getUser()
-
   if (publicRoutes.includes(pathname)) {
     if (user) {
       return NextResponse.redirect(new URL(destinationFor(user.user_metadata?.role), request.url))
@@ -66,8 +50,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Unauthenticated → login
-  if (!user || !hasAuthCookie) {
+  if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Root path always sends signed-in users to their role's landing page
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL(destinationFor(user.user_metadata?.role), request.url))
   }
 
   // Only teachers can access /teacher routes
