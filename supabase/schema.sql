@@ -17,6 +17,37 @@ as $$
 $$;
 
 -- ============================================================
+-- current_student_section_id() / current_student_teacher_id()
+-- SECURITY DEFINER so the lookup runs as the function owner and
+-- bypasses RLS internally. Required because "Students: view own
+-- section" (on sections) and "Students: view own teacher" (on
+-- teachers) need to read the student's own students row, but
+-- "Teachers: manage students" (on students) reads sections — a
+-- plain subquery on students from a sections/teachers policy
+-- creates a students <-> sections RLS cycle that Postgres detects
+-- as infinite recursion (error 42P17) on EVERY query against
+-- students, not just the section/teacher lookups.
+-- ============================================================
+create or replace function public.current_student_section_id()
+returns uuid
+language sql stable security definer
+set search_path = public
+as $$
+  select section_id from public.students where id = auth.uid();
+$$;
+
+create or replace function public.current_student_teacher_id()
+returns uuid
+language sql stable security definer
+set search_path = public
+as $$
+  select sec.teacher_id
+  from public.students s
+  join public.sections sec on sec.id = s.section_id
+  where s.id = auth.uid();
+$$;
+
+-- ============================================================
 -- TEACHERS
 -- Uses Supabase Auth (auth.users) for credentials.
 -- One auth.user = one teacher profile.
@@ -38,6 +69,11 @@ create policy "Teachers: own profile" on public.teachers
 create policy "Admin: full access teachers" on public.teachers
   for all using (public.is_admin());
 
+-- Students: read their own section's teacher (for the Profile page's
+-- "Class" card — name only, via the "own profile" columns above).
+create policy "Students: view own teacher" on public.teachers
+  for select using (id = public.current_student_teacher_id());
+
 -- ============================================================
 -- SECTIONS
 -- A teacher's class group (e.g. "Apple", "Banana").
@@ -56,6 +92,10 @@ create policy "Sections: teacher owns" on public.sections
 -- Admin: full access (can create sections for any teacher)
 create policy "Admin: full access sections" on public.sections
   for all using (public.is_admin());
+
+-- Students: read their own section (for the Profile page's "Class" card)
+create policy "Students: view own section" on public.sections
+  for select using (id = public.current_student_section_id());
 
 -- ============================================================
 -- STUDENTS
@@ -267,6 +307,42 @@ create policy "Admin: full access quiz_answers" on public.quiz_answers
   for all using (public.is_admin());
 
 -- ============================================================
+-- AUDIT LOGS
+-- Records account/management actions by admins, teachers, and
+-- students. actor_id is intentionally NOT a foreign key so log
+-- rows survive account deletion; actor_name/actor_role are
+-- denormalized for the same reason. Only inserted via the
+-- service-role client (app/actions/audit.ts) — there is no
+-- insert policy for `authenticated`, so client sessions can
+-- never write (or forge) a log entry directly.
+-- ============================================================
+-- section_id/section_name are populated only for teacher-initiated,
+-- section-scoped actions (create/delete section, toggle quiz, reset
+-- attempt, add/remove student) — captured at write time since a section
+-- can later be deleted or a student moved, making it undiscoverable
+-- afterward. Same non-FK denormalization reasoning as actor_id/actor_name.
+-- Currently unused by any UI (admin's audit log view is not
+-- section-scoped) — recorded for potential future use.
+create table public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid,
+  actor_name text not null,
+  actor_role text not null,
+  action text not null,
+  description text not null,
+  section_id uuid,
+  section_name text,
+  created_at timestamptz not null default now()
+);
+alter table public.audit_logs enable row level security;
+
+-- Admin only. No insert/update/delete policy for `authenticated`
+-- at all — writes only ever happen via the service-role client,
+-- which bypasses RLS. Teachers and students have no read access.
+create policy "Admin: read audit logs" on public.audit_logs
+  for select using (public.is_admin());
+
+-- ============================================================
 -- USER ROLES VIEW
 -- Helper to determine if an auth.user is a teacher or student.
 -- ============================================================
@@ -321,3 +397,7 @@ grant select, insert, update, delete on public.quiz_settings to authenticated, s
 grant select, insert, update, delete on public.quiz_attempts to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_answers to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;
+-- audit_logs: authenticated only ever needs to read (admin UI); all writes
+-- go through the service-role client in app/actions/audit.ts.
+grant select on public.audit_logs to authenticated;
+grant select, insert, update, delete on public.audit_logs to service_role;

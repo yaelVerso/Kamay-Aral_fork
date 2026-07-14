@@ -1,12 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, LogOut } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, Users, Settings, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { recordAuditLog } from '@/app/actions/audit'
 
 const links = [
   { href: '/teacher/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,44 +17,83 @@ const links = [
 export default function TeacherNav() {
   const pathname = usePathname()
   const router = useRouter()
+  const [open, setOpen] = useState(false)
 
   async function handleLogout() {
+    await recordAuditLog({ action: 'auth.logout', description: 'logged out' })
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
   }
 
-  return (
-    <header className="border-b bg-white">
-      <div className="container mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/teacher/dashboard" className="text-lg font-bold text-indigo-600">
-          Kamay Aral
+  const content = (
+    <>
+      <Link href="/teacher/dashboard" className="text-2xl font-black text-white p-6 block">
+        Kamay Aral
+      </Link>
+      <nav className="flex flex-col gap-1 px-2">
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setOpen(false)}
+              className={cn(
+                'flex items-center gap-2 rounded-md px-6 py-3 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-[#ffffff75] text-white'
+                  : 'text-white hover:bg-[#ffffff25]',
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          )
+        })}
+      </nav>
+      <div className="mt-auto px-2 pb-4 flex flex-col gap-1">
+        <Link
+          href="/teacher/settings"
+          onClick={() => setOpen(false)}
+          className={cn(
+            'flex items-center gap-2 rounded-md px-6 py-3 text-sm font-medium transition-colors',
+            pathname.startsWith('/teacher/settings')
+              ? 'bg-[#ffffff75] text-white'
+              : 'text-white hover:bg-[#ffffff25]',
+          )}
+        >
+          <Settings className="h-4 w-4" />
+          Settings
         </Link>
-        <nav className="flex items-center gap-1">
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            )
-          })}
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="ml-2 gap-1.5 text-muted-foreground">
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
-        </nav>
+        <Button variant="ghost" size="lg" onClick={handleLogout} className="w-full justify-start gap-1.5 text-white">
+          <LogOut className="h-5 w-5" />
+          Sign out
+        </Button>
       </div>
-    </header>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="flex items-center justify-between border-b bg-[#007B89] px-4 py-3 md:hidden">
+        <span className="text-lg font-bold text-white">Kamay Aral</span>
+        <button onClick={() => setOpen((o) => !o)} className="text-white">
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+      {open && (
+        <div className="flex flex-col border-b bg-[#007B89] pb-2 md:hidden">{content}</div>
+      )}
+
+      {/* Desktop sidebar — sticky + h-screen (not min-h-screen) so it stays
+          pinned to the viewport instead of stretching to match tall page
+          content (e.g. a long audit log list), which pushed Settings/Sign
+          out below the fold and required scrolling the whole page to reach. */}
+      <aside className="hidden md:flex md:w-70 md:flex-col md:border-r md:bg-[#007B89] md:h-screen md:sticky md:top-0 md:overflow-y-auto">
+        {content}
+      </aside>
+    </>
   )
 }

@@ -41,7 +41,14 @@ export default async function StudentDetailPage({ params }: Props) {
         <h1 className="text-2xl font-bold">{student.full_name}</h1>
       </div>
 
-      <StudentProgressView learnProgress={learnProgress} attempts={attempts} answers={answers} />
+      <StudentProgressView
+        studentName={student.full_name}
+        sectionId={section.id}
+        sectionName={section.name}
+        learnProgress={learnProgress}
+        attempts={attempts}
+        answers={answers}
+      />
     </div>
   )
 }

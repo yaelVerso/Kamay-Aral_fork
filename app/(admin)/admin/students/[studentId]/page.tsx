@@ -50,7 +50,14 @@ export default async function AdminStudentProfilePage({ params }: Props) {
         />
       </div>
 
-      <StudentProgressView learnProgress={learnProgress} attempts={attempts} answers={answers} />
+      <StudentProgressView
+        studentName={student.full_name}
+        sectionId={student.section_id}
+        sectionName={section?.name}
+        learnProgress={learnProgress}
+        attempts={attempts}
+        answers={answers}
+      />
     </div>
   )
 }

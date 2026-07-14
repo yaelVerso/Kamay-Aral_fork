@@ -1,14 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { MODULES } from '@/content/registry'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RecentActivityWidget from '@/components/shared/RecentActivityWidget'
 
 export default async function AdminOverviewPage() {
   const supabase = await createClient()
 
-  const [{ count: teacherCount }, { count: sectionCount }, { count: studentCount }] = await Promise.all([
+  const [{ count: teacherCount }, { count: sectionCount }, { count: studentCount }, { data: recentLogs }] = await Promise.all([
     supabase.from('teachers').select('id', { count: 'exact', head: true }),
     supabase.from('sections').select('id', { count: 'exact', head: true }),
     supabase.from('students').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('audit_logs')
+      .select('id, actor_name, actor_role, description, created_at')
+      .order('created_at', { ascending: false })
+      .limit(5),
   ])
 
   return (
@@ -52,6 +58,8 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      <RecentActivityWidget logs={recentLogs ?? []} viewAllHref="/admin/audit-logs" />
     </div>
   )
 }

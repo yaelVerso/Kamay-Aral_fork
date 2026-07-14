@@ -3,12 +3,15 @@ import { CheckCircle2 } from 'lucide-react'
 import ResetAttemptButton from '@/components/teacher/ResetAttemptButton'
 
 interface Props {
+  studentName: string
+  sectionId?: string | null
+  sectionName?: string | null
   learnProgress: { module_id: string; submodule_id: string; item_id: string }[]
   attempts: { id: string; submodule_id: string; score: number | null; total: number | null; submitted_at: string | null }[]
   answers: { attempt_id: string; item_id: string; is_correct: boolean }[]
 }
 
-export default function StudentProgressView({ learnProgress, attempts, answers }: Props) {
+export default function StudentProgressView({ studentName, sectionId, sectionName, learnProgress, attempts, answers }: Props) {
   function learnedCount(moduleId: string, submoduleId: string, totalItems: number) {
     const viewed = learnProgress.filter(
       (p) => p.module_id === moduleId && p.submodule_id === submoduleId
@@ -58,7 +61,13 @@ export default function StudentProgressView({ learnProgress, attempts, answers }
                           }`}>
                             {attempt.score}/{attempt.total} ({percent}%)
                           </span>
-                          <ResetAttemptButton attemptId={attempt.id} />
+                          <ResetAttemptButton
+                            attemptId={attempt.id}
+                            studentName={studentName}
+                            submoduleTitle={sm.title}
+                            sectionId={sectionId}
+                            sectionName={sectionName}
+                          />
                         </div>
                       )}
                       {attempt && !submitted && (

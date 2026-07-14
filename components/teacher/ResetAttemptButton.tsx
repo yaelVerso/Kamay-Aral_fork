@@ -6,8 +6,17 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { recordAuditLog } from '@/app/actions/audit'
 
-export default function ResetAttemptButton({ attemptId }: { attemptId: string }) {
+interface Props {
+  attemptId: string
+  studentName: string
+  submoduleTitle: string
+  sectionId?: string | null
+  sectionName?: string | null
+}
+
+export default function ResetAttemptButton({ attemptId, studentName, submoduleTitle, sectionId, sectionName }: Props) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -18,6 +27,12 @@ export default function ResetAttemptButton({ attemptId }: { attemptId: string })
       const supabase = createClient()
       const { error } = await supabase.from('quiz_attempts').delete().eq('id', attemptId)
       if (error) throw error
+      await recordAuditLog({
+        action: 'attempt.reset',
+        description: `reset ${studentName}'s quiz attempt for ${submoduleTitle}`,
+        sectionId,
+        sectionName,
+      })
       toast.success('Attempt reset')
       router.refresh()
     } catch (err: unknown) {
