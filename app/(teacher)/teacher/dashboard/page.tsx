@@ -8,27 +8,19 @@ export default async function TeacherDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: teacher } = await supabase
-    .from('teachers')
-    .select('first_name, full_name')
-    .eq('id', user!.id)
-    .single()
-
-  const { data: sections } = await supabase
-    .from('sections')
-    .select('id, name')
-    .eq('teacher_id', user!.id)
-    .order('created_at')
+  const [{ data: teacher }, { data: sections }] = await Promise.all([
+    supabase.from('teachers').select('first_name, full_name').eq('id', user!.id).single(),
+    supabase.from('sections').select('id, name').eq('teacher_id', user!.id).order('created_at'),
+  ])
 
   const sectionIds = sections?.map((s) => s.id) ?? []
 
-  const { data: studentCounts } = sectionIds.length > 0
-    ? await supabase.from('students').select('section_id').in('section_id', sectionIds)
+  const { data: students } = sectionIds.length > 0
+    ? await supabase.from('students').select('id, section_id').in('section_id', sectionIds)
     : { data: [] }
 
-  const studentIds = sectionIds.length > 0
-    ? (await supabase.from('students').select('id').in('section_id', sectionIds)).data?.map((s) => s.id) ?? []
-    : []
+  const studentCounts = students ?? []
+  const studentIds = students?.map((s) => s.id) ?? []
 
   const { data: attempts } = studentIds.length > 0
     ? await supabase

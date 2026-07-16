@@ -12,19 +12,11 @@ export default async function StudentDetailPage({ params }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: section } = await supabase
-    .from('sections')
-    .select('id, name, teacher_id')
-    .eq('id', sectionId)
-    .single()
+  const [{ data: section }, { data: student }] = await Promise.all([
+    supabase.from('sections').select('id, name, teacher_id').eq('id', sectionId).single(),
+    supabase.from('students').select('id, full_name').eq('id', studentId).eq('section_id', sectionId).single(),
+  ])
   if (!section || section.teacher_id !== user!.id) notFound()
-
-  const { data: student } = await supabase
-    .from('students')
-    .select('id, full_name')
-    .eq('id', studentId)
-    .eq('section_id', sectionId)
-    .single()
   if (!student) notFound()
 
   const { learnProgress, attempts, answers } = await getStudentProgress(supabase, studentId)

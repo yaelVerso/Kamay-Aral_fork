@@ -1,4 +1,4 @@
-﻿import type { Module } from '@/content/types'
+import type { Module } from '@/content/types'
 
 // Sub-modules TBD
 const module: Module = {

@@ -1,9 +1,9 @@
-﻿import type { Module } from '@/content/types'
+import type { Module } from '@/content/types'
 
 // Sub-modules TBD
 const module: Module = {
   id: 'feelings',
-  order: 5,
+  order: 10,
   title: 'Feelings and Emotions',
   description: 'Express feelings and emotions in Filipino Sign Language.',
   icon: '😊',

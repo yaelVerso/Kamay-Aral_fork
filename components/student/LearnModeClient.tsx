@@ -101,6 +101,7 @@ export default function LearnModeClient({ module: mod, submodule }: Props) {
               src={selectedItem.videoPath}
               controls
               playsInline
+              preload="metadata"
               className="h-full w-full object-contain"
             >
               <source src={selectedItem.videoPath} type="video/mp4" />

@@ -11,24 +11,13 @@ export default async function AdminSectionDetailPage({ params }: Props) {
   const { teacherId, sectionId } = await params
   const supabase = await createClient()
 
-  const { data: section } = await supabase
-    .from('sections')
-    .select('id, name, teacher_id')
-    .eq('id', sectionId)
-    .single()
+  const [{ data: section }, { data: students }, { data: quizSettings }] = await Promise.all([
+    supabase.from('sections').select('id, name, teacher_id').eq('id', sectionId).single(),
+    supabase.from('students').select('id, full_name').eq('section_id', sectionId).order('full_name'),
+    supabase.from('quiz_settings').select('submodule_id, enabled').eq('section_id', sectionId),
+  ])
 
   if (!section || section.teacher_id !== teacherId) notFound()
-
-  const { data: students } = await supabase
-    .from('students')
-    .select('id, full_name')
-    .eq('section_id', sectionId)
-    .order('full_name')
-
-  const { data: quizSettings } = await supabase
-    .from('quiz_settings')
-    .select('submodule_id, enabled')
-    .eq('section_id', sectionId)
 
   function isEnabled(submoduleId: string) {
     return quizSettings?.find((q) => q.submodule_id === submoduleId)?.enabled ?? false

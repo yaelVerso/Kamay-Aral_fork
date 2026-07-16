@@ -6,16 +6,14 @@ export default async function ProgressPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: learnRows } = await supabase
-    .from('learn_progress')
-    .select('module_id, item_id')
-    .eq('student_id', user!.id)
-
-  const { data: attempts } = await supabase
-    .from('quiz_attempts')
-    .select('submodule_id, score, total, submitted_at')
-    .eq('student_id', user!.id)
-    .not('submitted_at', 'is', null)
+  const [{ data: learnRows }, { data: attempts }] = await Promise.all([
+    supabase.from('learn_progress').select('module_id, item_id').eq('student_id', user!.id),
+    supabase
+      .from('quiz_attempts')
+      .select('submodule_id, score, total, submitted_at')
+      .eq('student_id', user!.id)
+      .not('submitted_at', 'is', null),
+  ])
 
   function moduleProgress(moduleId: string, totalItems: number): number {
     if (totalItems === 0) return 0

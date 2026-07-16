@@ -381,6 +381,20 @@ create or replace trigger on_auth_user_created
   for each row execute procedure public.handle_teacher_signup();
 
 -- ============================================================
+-- INDEXES
+-- Foreign-key columns queried by RLS policies and app pages on
+-- every navigation. Marginal at classroom scale today, but free
+-- and keeps queries flat as data grows.
+-- ============================================================
+create index if not exists idx_students_section_id on public.students (section_id);
+create index if not exists idx_sections_teacher_id on public.sections (teacher_id);
+create index if not exists idx_quiz_attempts_student_id on public.quiz_attempts (student_id);
+create index if not exists idx_learn_progress_student_id on public.learn_progress (student_id);
+create index if not exists idx_quiz_answers_attempt_id on public.quiz_answers (attempt_id);
+create index if not exists idx_quiz_settings_section_id on public.quiz_settings (section_id);
+create index if not exists idx_audit_logs_created_at on public.audit_logs (created_at desc);
+
+-- ============================================================
 -- GRANTS
 -- Required because tables created via SQL editor are not
 -- automatically accessible to the `authenticated`, `anon`, or

@@ -7,17 +7,11 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('first_name, full_name')
-    .eq('id', user!.id)
-    .single()
-
   // Count viewed items per module for progress rings
-  const { data: learnRows } = await supabase
-    .from('learn_progress')
-    .select('module_id, item_id')
-    .eq('student_id', user!.id)
+  const [{ data: student }, { data: learnRows }] = await Promise.all([
+    supabase.from('students').select('first_name, full_name').eq('id', user!.id).single(),
+    supabase.from('learn_progress').select('module_id, item_id').eq('student_id', user!.id),
+  ])
 
   function moduleProgress(moduleId: string, totalItems: number): number {
     if (totalItems === 0) return 0

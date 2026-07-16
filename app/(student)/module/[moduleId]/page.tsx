@@ -12,19 +12,15 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch completed quiz attempts for this student
-  const { data: attempts } = await supabase
-    .from('quiz_attempts')
-    .select('submodule_id, score, total')
-    .eq('student_id', user!.id)
-    .not('submitted_at', 'is', null)
-
-  // Fetch student's section for quiz settings
-  const { data: student } = await supabase
-    .from('students')
-    .select('section_id')
-    .eq('id', user!.id)
-    .single()
+  // Completed quiz attempts + student's section, fetched in parallel (independent)
+  const [{ data: attempts }, { data: student }] = await Promise.all([
+    supabase
+      .from('quiz_attempts')
+      .select('submodule_id, score, total')
+      .eq('student_id', user!.id)
+      .not('submitted_at', 'is', null),
+    supabase.from('students').select('section_id').eq('id', user!.id).single(),
+  ])
 
   const { data: quizSettings } = await supabase
     .from('quiz_settings')
