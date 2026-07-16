@@ -18,7 +18,6 @@ export default function DeleteSectionButton({ sectionId, sectionName, redirectTo
       await deleteSectionAction(sectionId)
       toast.success(`Section "${sectionName}" deleted`)
       router.push(redirectTo)
-      router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete section')
     } finally {

@@ -71,6 +71,12 @@ const QUIZ_SIGN_TO_PICTURE_COUNT = 4
 const QUIZ_SPELLING_COUNT = 4
 const QUIZ_DRAG_DROP_GROUP_COUNT = 2
 
+/** Number of scorable questions `buildQuizSteps` will produce for this submodule. */
+export function getQuizQuestionCount(submodule: SubModule): number {
+  const hasDragDrop = submodule.activitySequence.includes('drag-drop-match') && submodule.items.length >= 3
+  return QUIZ_SIGN_TO_PICTURE_COUNT + QUIZ_SPELLING_COUNT + (hasDragDrop ? QUIZ_DRAG_DROP_GROUP_COUNT : 0)
+}
+
 /**
  * Picks `count` items from `pool`, guaranteeing every item appears at
  * least once before any repeats when `count >= pool.length` (draws full
