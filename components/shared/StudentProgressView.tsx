@@ -1,5 +1,5 @@
 import { MODULES } from '@/content/registry'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import ResetAttemptButton from '@/components/teacher/ResetAttemptButton'
 import AttemptReview from '@/components/shared/AttemptReview'
 import ModuleAccordion from '@/components/shared/ModuleAccordion'
@@ -41,7 +41,20 @@ export default function StudentProgressView({ studentName, sectionId, sectionNam
 
   return (
     <>
-      <h2 className="font-semibold mb-3">Performance</h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-3">
+        <h2 className="font-semibold">Performance</h2>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Mastered
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-500" /> Needs Review
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-red-500" /> Needs Attention
+          </span>
+        </div>
+      </div>
       <ModuleAccordion
       sections={MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => {
         const avg = moduleAverage(mod.id, mod.subModules.map((sm) => sm.id))
@@ -100,21 +113,26 @@ export default function StudentProgressView({ studentName, sectionId, sectionNam
                       <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
                         {sm.items.map((item) => {
                           const results = itemAnswers.filter((a) => a.item_id === item.id)
-                          const allCorrect = results.length > 0 && results.every((a) => a.is_correct)
-                          const anyWrong = results.some((a) => !a.is_correct)
+                          const correctCount = results.filter((a) => a.is_correct).length
+                          const ratio = results.length > 0 ? correctCount / results.length : null
+                          // All correct -> green. At least half correct (but not all) -> yellow.
+                          // Less than half correct (majority/all wrong) -> red.
+                          const status = ratio === null ? null : ratio === 1 ? 'correct' : ratio >= 0.5 ? 'partial' : 'wrong'
                           return (
                             <div
                               key={item.id}
-                              title={`${item.label}: ${results.filter((a) => a.is_correct).length}/${results.length} correct`}
+                              title={`${item.label}: ${correctCount}/${results.length} correct`}
                               className={`flex items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-xs font-bold ${
-                                allCorrect ? 'bg-emerald-100 text-emerald-700' :
-                                anyWrong ? 'bg-red-100 text-red-700' :
+                                status === 'correct' ? 'bg-emerald-100 text-emerald-700' :
+                                status === 'partial' ? 'bg-amber-100 text-amber-700' :
+                                status === 'wrong' ? 'bg-red-100 text-red-700' :
                                 'bg-muted text-muted-foreground'
                               }`}
                             >
                               {item.label}
-                              {allCorrect && <CheckCircle2 className="h-3 w-3" />}
-                              {anyWrong && <span>✗</span>}
+                              {status === 'correct' && <CheckCircle2 className="h-3 w-3" />}
+                              {status === 'partial' && <AlertTriangle className="h-3 w-3" />}
+                              {status === 'wrong' && <span>✗</span>}
                             </div>
                           )
                         })}
