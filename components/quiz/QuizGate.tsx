@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Module, SubModule } from '@/content/types'
-import ActivityRunner from '@/components/activities/ActivityRunner'
+import ActivityRunner, { getQuizQuestionCount } from '@/components/activities/ActivityRunner'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -18,8 +18,7 @@ export default function QuizGate({ module: mod, submodule, attemptId }: Props) {
     return <ActivityRunner module={mod} submodule={submodule} mode="quiz" attemptId={attemptId} />
   }
 
-  const questionCount = submodule.items.length *
-    submodule.activitySequence.filter((t) => t !== 'lesson-card').length
+  const questionCount = getQuizQuestionCount(submodule)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 gap-6 text-center">
@@ -27,7 +26,7 @@ export default function QuizGate({ module: mod, submodule, attemptId }: Props) {
       <div>
         <h1 className="text-2xl font-bold">{submodule.title} Quiz</h1>
         <p className="text-muted-foreground mt-2 max-w-xs">
-          This quiz has <strong>~{questionCount} questions</strong> and can only be taken <strong>once</strong>.
+          This quiz has <strong>{questionCount} questions</strong> and can only be taken <strong>once</strong>.
           Make sure you&apos;re ready before starting.
         </p>
       </div>
