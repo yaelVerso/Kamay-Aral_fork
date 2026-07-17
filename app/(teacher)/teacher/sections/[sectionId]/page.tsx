@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import SectionDetailView from '@/components/shared/SectionDetailView'
 import DeleteSectionButton from '@/components/shared/DeleteSectionButton'
+import { MODULES } from '@/content/registry'
 
 interface Props { params: Promise<{ sectionId: string }> }
 
@@ -28,20 +29,29 @@ export default async function SectionDetailPage({ params }: Props) {
   const { data: attempts } = studentIds.length > 0
     ? await supabase
         .from('quiz_attempts')
-        .select('student_id, submodule_id, score, total')
+        .select('student_id, submodule_id, score, total, submitted_at')
         .in('student_id', studentIds)
         .not('submitted_at', 'is', null)
     : { data: [] }
 
+  const totalQuizzes = MODULES.reduce((sum, mod) => sum + mod.subModules.filter((sm) => isEnabled(sm.id)).length, 0)
+
   const studentRows = (students ?? []).map((student) => {
-    const studentAttempts = attempts?.filter((a) => a.student_id === student.id) ?? []
-    const avg = studentAttempts.length > 0
-      ? Math.round(
-          studentAttempts.reduce((acc, a) => acc + (a.total ? (a.score ?? 0) / a.total : 0), 0)
-          / studentAttempts.length * 100
-        )
-      : null
-    return { id: student.id, full_name: student.full_name, avg }
+    const studentAttempts = (attempts ?? [])
+      .filter((a) => a.student_id === student.id)
+      .sort((a, b) => new Date(a.submitted_at!).getTime() - new Date(b.submitted_at!).getTime())
+    const percents = studentAttempts.map((a) => (a.total ? (a.score ?? 0) / a.total * 100 : 0))
+    const avg = percents.length > 0 ? Math.round(percents.reduce((sum, p) => sum + p, 0) / percents.length) : null
+
+    let trend: 'up' | 'down' | null = null
+    if (percents.length >= 2) {
+      const latest = percents[percents.length - 1]
+      const priorAvg = percents.slice(0, -1).reduce((sum, p) => sum + p, 0) / (percents.length - 1)
+      if (latest > priorAvg) trend = 'up'
+      else if (latest < priorAvg) trend = 'down'
+    }
+
+    return { id: student.id, full_name: student.full_name, avg, trend, completedCount: studentAttempts.length }
   })
 
   return (
@@ -60,6 +70,7 @@ export default async function SectionDetailPage({ params }: Props) {
         sectionId={sectionId}
         sectionName={section.name}
         students={studentRows}
+        totalQuizzes={totalQuizzes}
         isEnabled={isEnabled}
         studentHref={(studentId) => `/teacher/sections/${sectionId}/students/${studentId}`}
       />

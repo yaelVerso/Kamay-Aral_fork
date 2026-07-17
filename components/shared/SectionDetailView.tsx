@@ -6,22 +6,26 @@ import CreateStudentDialog from '@/components/shared/CreateStudentDialog'
 import AddExistingStudentDialog from '@/components/shared/AddExistingStudentDialog'
 import RemoveFromSectionButton from '@/components/shared/RemoveFromSectionButton'
 import ModuleAccordion from '@/components/shared/ModuleAccordion'
+import SectionPerformanceList from '@/components/shared/SectionPerformanceList'
 
 interface StudentRow {
   id: string
   full_name: string
   avg: number | null
+  trend?: 'up' | 'down' | null
+  completedCount?: number
 }
 
 interface Props {
   sectionId: string
   sectionName: string
   students: StudentRow[]
+  totalQuizzes: number
   isEnabled: (submoduleId: string) => boolean
   studentHref: (studentId: string) => string
 }
 
-export default function SectionDetailView({ sectionId, sectionName, students, isEnabled, studentHref }: Props) {
+export default function SectionDetailView({ sectionId, sectionName, students, totalQuizzes, isEnabled, studentHref }: Props) {
   return (
     <>
       <div>
@@ -88,6 +92,17 @@ export default function SectionDetailView({ sectionId, sectionName, students, is
               </>
             ),
           }))}
+        />
+      </div>
+
+      <Separator />
+
+      <div>
+        <h2 className="font-semibold mb-1">Section Performance</h2>
+        <p className="text-sm text-muted-foreground mb-3">Ranked by quiz average — lowest first highlights who may need attention.</p>
+        <SectionPerformanceList
+          students={students.map((s) => ({ ...s, href: studentHref(s.id) }))}
+          totalQuizzes={totalQuizzes}
         />
       </div>
     </>
