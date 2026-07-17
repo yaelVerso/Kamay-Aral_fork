@@ -33,7 +33,7 @@ export default async function AdminSectionDetailPage({ params }: Props) {
         .not('submitted_at', 'is', null)
     : { data: [] }
 
-  const totalQuizzes = MODULES.reduce((sum, mod) => sum + mod.subModules.filter((sm) => isEnabled(sm.id)).length, 0)
+  const enabledSubmoduleIds = MODULES.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id))
 
   const studentRows = (students ?? []).map((student) => {
     const studentAttempts = (attempts ?? [])
@@ -69,7 +69,8 @@ export default async function AdminSectionDetailPage({ params }: Props) {
         sectionId={sectionId}
         sectionName={section.name}
         students={studentRows}
-        totalQuizzes={totalQuizzes}
+        attempts={(attempts ?? []).map((a) => ({ ...a, submitted_at: a.submitted_at! }))}
+        enabledSubmoduleIds={enabledSubmoduleIds}
         isEnabled={isEnabled}
         studentHref={(studentId) => `/admin/students/${studentId}`}
       />

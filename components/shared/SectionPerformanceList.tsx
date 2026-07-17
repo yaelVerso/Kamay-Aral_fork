@@ -1,22 +1,70 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowUp, ArrowDown, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MODULES } from '@/content/registry'
 
-interface Row {
+interface StudentBasic {
   id: string
   full_name: string
-  avg: number | null
-  trend?: 'up' | 'down' | null
-  completedCount?: number
   href: string
 }
 
-export default function SectionPerformanceList({ students, totalQuizzes }: { students: Row[]; totalQuizzes: number }) {
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+interface Attempt {
+  student_id: string
+  submodule_id: string
+  score: number | null
+  total: number | null
+  submitted_at: string
+}
 
-  const ranked = [...students].sort((a, b) => {
+interface Props {
+  students: StudentBasic[]
+  attempts: Attempt[]
+  enabledSubmoduleIds: string[]
+}
+
+const MODULE_OPTIONS = MODULES.filter((mod) => mod.subModules.length > 0)
+
+export default function SectionPerformanceList({ students, attempts, enabledSubmoduleIds }: Props) {
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+  const [scope, setScope] = useState<string>('all')
+
+  const submoduleToModule = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const mod of MODULES) {
+      for (const sm of mod.subModules) map.set(sm.id, mod.id)
+    }
+    return map
+  }, [])
+
+  const totalForScope = scope === 'all'
+    ? enabledSubmoduleIds.length
+    : enabledSubmoduleIds.filter((id) => submoduleToModule.get(id) === scope).length
+
+  const rows = useMemo(() => {
+    return students.map((student) => {
+      const studentAttempts = attempts
+        .filter((a) => a.student_id === student.id && (scope === 'all' || submoduleToModule.get(a.submodule_id) === scope))
+        .sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
+      const percents = studentAttempts.map((a) => (a.total ? (a.score ?? 0) / a.total * 100 : 0))
+      const avg = percents.length > 0 ? Math.round(percents.reduce((sum, p) => sum + p, 0) / percents.length) : null
+
+      let trend: 'up' | 'down' | null = null
+      if (percents.length >= 2) {
+        const latest = percents[percents.length - 1]
+        const priorAvg = percents.slice(0, -1).reduce((sum, p) => sum + p, 0) / (percents.length - 1)
+        if (latest > priorAvg) trend = 'up'
+        else if (latest < priorAvg) trend = 'down'
+      }
+
+      return { ...student, avg, trend, completedCount: studentAttempts.length }
+    })
+  }, [students, attempts, scope, submoduleToModule])
+
+  const ranked = [...rows].sort((a, b) => {
     // Students with no quiz data yet always sink to the bottom regardless of sort direction —
     // they aren't "doing well" or "doing poorly", there's just nothing to rank yet.
     if (a.avg === null && b.avg === null) return 0
@@ -25,7 +73,7 @@ export default function SectionPerformanceList({ students, totalQuizzes }: { stu
     return order === 'asc' ? a.avg - b.avg : b.avg - a.avg
   })
 
-  const withScores = students.filter((s): s is Row & { avg: number } => s.avg !== null)
+  const withScores = rows.filter((s): s is typeof s & { avg: number } => s.avg !== null)
   const sectionAvg = withScores.length > 0
     ? Math.round(withScores.reduce((sum, s) => sum + s.avg, 0) / withScores.length)
     : null
@@ -33,10 +81,38 @@ export default function SectionPerformanceList({ students, totalQuizzes }: { stu
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setScope('all')}
+          className={cn(
+            'rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
+            scope === 'all'
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'text-muted-foreground border-border hover:bg-muted',
+          )}
+        >
+          All Modules
+        </button>
+        {MODULE_OPTIONS.map((mod) => (
+          <button
+            key={mod.id}
+            onClick={() => setScope(mod.id)}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
+              scope === mod.id
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'text-muted-foreground border-border hover:bg-muted',
+            )}
+          >
+            {mod.icon} {mod.title}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           {sectionAvg !== null && (
-            <span>Section average: <strong className="text-foreground">{sectionAvg}%</strong></span>
+            <span>Average: <strong className="text-foreground">{sectionAvg}%</strong></span>
           )}
           {needsAttentionCount > 0 && (
             <span className="flex items-center gap-1 text-red-600 font-medium">
@@ -69,7 +145,7 @@ export default function SectionPerformanceList({ students, totalQuizzes }: { stu
               </div>
               <div>
                 <p className="font-medium">{student.full_name}</p>
-                <p className="text-xs text-muted-foreground">{student.completedCount ?? 0}/{totalQuizzes} quizzes taken</p>
+                <p className="text-xs text-muted-foreground">{student.completedCount}/{totalForScope} quizzes taken</p>
               </div>
             </div>
             {student.avg !== null ? (
