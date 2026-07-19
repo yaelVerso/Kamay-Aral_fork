@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { SignItem } from '@/content/types'
 import Image from 'next/image'
-import { cn } from '@/lib/utils'
+import { cn, labelTextSize } from '@/lib/utils'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { shuffle } from '@/lib/shuffle'
@@ -87,10 +87,10 @@ export default function SignToPicture({ item, distractors, mode, initialAnswer, 
                   <div className="relative h-20 w-full">
                     <Image src={choice.imagePath} alt={choice.label} fill className="object-contain" />
                   </div>
-                  <span className="text-xl font-bold">{choice.label}</span>
+                  <span className={`${labelTextSize(choice.label, ['text-xl', 'text-base', 'text-sm'])} break-words text-center font-bold`}>{choice.label}</span>
                 </>
               ) : (
-                <div className="flex h-20 w-full items-center justify-center text-3xl font-black text-[var(--brand-secondary)]">
+                <div className={`flex h-20 w-full items-center justify-center px-1 text-center ${labelTextSize(choice.label, ['text-3xl', 'text-xl', 'text-base'])} break-words font-black text-[var(--brand-secondary)]`}>
                   {choice.label}
                 </div>
               )}
