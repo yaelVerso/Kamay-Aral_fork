@@ -85,7 +85,7 @@ export default function LoginForm({ systemName, logoUrl }: Props) {
             <Input
               id="identifier"
               type="text"
-              placeholder="you@example.com or your ID number"
+              placeholder="ID number or you@example.com"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
