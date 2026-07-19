@@ -57,6 +57,10 @@ create table public.teachers (
   full_name text not null,
   first_name text,
   last_name text,
+  -- School-assigned ID number, typed in by admin at creation. Nullable so
+  -- pre-existing rows aren't broken by this addition; also used as an
+  -- alternate login identifier (see resolveLoginEmail in app/actions/auth.ts).
+  id_number text,
   -- Deactivation (not deletion) is the only way to remove access from the
   -- app UI — see deactivateTeacherAction/reactivateTeacherAction, which also
   -- ban/unban the auth.users row so a deactivated account can't sign in at
@@ -65,6 +69,8 @@ create table public.teachers (
   created_at timestamptz not null default now()
 );
 alter table public.teachers enable row level security;
+
+create unique index teachers_id_number_key on public.teachers (id_number) where id_number is not null;
 
 -- Teachers can only read/update their own profile
 create policy "Teachers: own profile" on public.teachers
@@ -115,6 +121,10 @@ create table public.students (
   first_name text,
   last_name text,
   email text,
+  -- School-assigned ID number, typed in by admin at creation. Nullable so
+  -- pre-existing rows aren't broken by this addition; also used as an
+  -- alternate login identifier (see resolveLoginEmail in app/actions/auth.ts).
+  id_number text,
   -- Deactivation (not deletion) is the only way to remove access from the
   -- app UI — see deactivateStudentAction/reactivateStudentAction, which also
   -- ban/unban the auth.users row so a deactivated account can't sign in at
@@ -123,6 +133,8 @@ create table public.students (
   created_at timestamptz not null default now()
 );
 alter table public.students enable row level security;
+
+create unique index students_id_number_key on public.students (id_number) where id_number is not null;
 
 -- Students read their own row
 create policy "Students: own row" on public.students
@@ -353,6 +365,45 @@ create policy "Admin: read audit logs" on public.audit_logs
   for select using (public.is_admin());
 
 -- ============================================================
+-- APP SETTINGS
+-- Singleton row for the admin branding CMS (system name, logo,
+-- colors). id is a boolean check-constrained to `true` so the
+-- table can never hold more than one row. Publicly readable
+-- (anon included) because the login page needs it before auth;
+-- only admin can write, via the plain policy (updates go through
+-- the RLS-scoped client, not service-role, since is_admin() covers it).
+-- ============================================================
+create table public.app_settings (
+  id boolean primary key default true check (id),
+  system_name text,
+  logo_url text,
+  primary_color text,
+  secondary_color text,
+  updated_at timestamptz not null default now()
+);
+insert into public.app_settings (id) values (true);
+
+alter table public.app_settings enable row level security;
+
+create policy "Everyone: read branding" on public.app_settings
+  for select using (true);
+
+create policy "Admin: manage branding" on public.app_settings
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- ============================================================
+-- BRANDING STORAGE BUCKET
+-- Public bucket for the uploaded logo. Upload/replace goes through
+-- the service-role client in a Server Action (see app/actions/branding.ts),
+-- consistent with how every other admin write bypasses RLS — no
+-- client-side storage policy is needed for writes. Reads are public
+-- since the bucket itself is public (logo isn't sensitive).
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('branding', 'branding', true)
+on conflict (id) do nothing;
+
+-- ============================================================
 -- USER ROLES VIEW
 -- Helper to determine if an auth.user is a teacher or student.
 -- ============================================================
@@ -421,6 +472,8 @@ grant select, insert, update, delete on public.quiz_settings to authenticated, s
 grant select, insert, update, delete on public.quiz_attempts to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_answers to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;
+grant select on public.app_settings to authenticated, anon;
+grant select, insert, update on public.app_settings to service_role;
 -- audit_logs: authenticated only ever needs to read (admin UI); all writes
 -- go through the service-role client in app/actions/audit.ts.
 grant select on public.audit_logs to authenticated;

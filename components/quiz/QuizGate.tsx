@@ -33,7 +33,7 @@ export default function QuizGate({ module: mod, submodule, attemptId }: Props) {
       <div className="w-full max-w-xs space-y-3">
         <Button
           onClick={() => setStarted(true)}
-          className="w-full py-6 text-base font-semibold bg-indigo-600 hover:bg-indigo-700"
+          className="w-full py-6 text-base font-semibold bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]"
         >
           Start Quiz
         </Button>

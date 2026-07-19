@@ -1,19 +1,23 @@
 import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { getBranding } from '@/lib/queries/branding'
 import './globals.css'
 
 const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito' })
 
-export const metadata: Metadata = {
-  title: 'Kamay Aral',
-  description: 'Learn Filipino Sign Language — interactive lessons and activities.',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Kamay Aral',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const { systemName } = await getBranding()
+  return {
+    title: systemName,
+    description: 'Learn Filipino Sign Language — interactive lessons and activities.',
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: systemName,
+    },
+  }
 }
 
 export const viewport: Viewport = {
@@ -24,7 +28,9 @@ export const viewport: Viewport = {
   userScalable: false,
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { primaryColor, secondaryColor } = await getBranding()
+
   return (
     <html lang="en" className={`${nunito.variable} h-full`} suppressHydrationWarning>
       <head>
@@ -35,6 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `try{var f=localStorage.getItem('fontSize');if(f)document.documentElement.setAttribute('data-font-size',f);var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}`,
           }}
         />
+        {(primaryColor || secondaryColor) && (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `:root{${primaryColor ? `--brand-primary:${primaryColor};` : ''}${secondaryColor ? `--brand-secondary:${secondaryColor};` : ''}}`,
+            }}
+          />
+        )}
       </head>
       <body className="min-h-full bg-background font-sans antialiased">
         {children}

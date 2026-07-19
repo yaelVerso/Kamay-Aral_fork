@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { getStudentProgress } from '@/lib/queries/student-progress'
 import StudentProgressView from '@/components/shared/StudentProgressView'
+import StudentInfoCard from '@/components/shared/StudentInfoCard'
 
 interface Props { params: Promise<{ sectionId: string; studentId: string }> }
 
@@ -14,7 +15,7 @@ export default async function StudentDetailPage({ params }: Props) {
 
   const [{ data: section }, { data: student }] = await Promise.all([
     supabase.from('sections').select('id, name, teacher_id').eq('id', sectionId).single(),
-    supabase.from('students').select('id, full_name').eq('id', studentId).eq('section_id', sectionId).single(),
+    supabase.from('students').select('id, full_name, id_number, email').eq('id', studentId).eq('section_id', sectionId).single(),
   ])
   if (!section || section.teacher_id !== user!.id) notFound()
   if (!student) notFound()
@@ -32,6 +33,8 @@ export default async function StudentDetailPage({ params }: Props) {
         </Link>
         <h1 className="text-2xl font-bold">{student.full_name}</h1>
       </div>
+
+      <StudentInfoCard idNumber={student.id_number} email={student.email} sectionName={section.name} />
 
       <StudentProgressView
         studentName={student.full_name}

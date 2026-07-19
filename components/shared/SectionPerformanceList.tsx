@@ -87,7 +87,7 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
           className={cn(
             'rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
             scope === 'all'
-              ? 'bg-indigo-600 text-white border-indigo-600'
+              ? 'bg-[var(--brand-secondary)] text-white border-[var(--brand-secondary)]'
               : 'text-muted-foreground border-border hover:bg-muted',
           )}
         >
@@ -100,7 +100,7 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
             className={cn(
               'rounded-full px-3 py-1.5 text-xs font-medium transition-colors border',
               scope === mod.id
-                ? 'bg-indigo-600 text-white border-indigo-600'
+                ? 'bg-[var(--brand-secondary)] text-white border-[var(--brand-secondary)]'
                 : 'text-muted-foreground border-border hover:bg-muted',
             )}
           >
@@ -140,7 +140,7 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
                 {idx + 1}
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)] text-sm font-bold text-[var(--brand-secondary)]">
                 {student.full_name[0]?.toUpperCase()}
               </div>
               <div>

@@ -87,7 +87,7 @@ export default function SignToPicture({ item, distractors, mode, initialAnswer, 
                   <Image src={choice.imagePath} alt={choice.label} fill className="object-contain" />
                 </div>
               ) : (
-                <div className="flex h-20 w-full items-center justify-center text-3xl font-black text-indigo-600">
+                <div className="flex h-20 w-full items-center justify-center text-3xl font-black text-[var(--brand-secondary)]">
                   {choice.label}
                 </div>
               )}

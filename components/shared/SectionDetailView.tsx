@@ -32,9 +32,10 @@ interface Props {
   enabledSubmoduleIds: string[]
   isEnabled: (submoduleId: string) => boolean
   studentHref: (studentId: string) => string
+  allowCreateStudent?: boolean
 }
 
-export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, isEnabled, studentHref }: Props) {
+export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, isEnabled, studentHref, allowCreateStudent = true }: Props) {
   return (
     <>
       <div>
@@ -42,7 +43,7 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
           <h2 className="font-semibold">Students ({students.length})</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <CreateStudentDialog sectionId={sectionId} triggerLabel="Create New" />
+          {allowCreateStudent && <CreateStudentDialog sectionId={sectionId} triggerLabel="Create New" />}
           <AddExistingStudentDialog sectionId={sectionId} />
         </div>
 
@@ -53,7 +54,7 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
               className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm"
             >
               <Link href={studentHref(student.id)} className="flex items-center gap-3 flex-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)] text-sm font-bold text-[var(--brand-secondary)]">
                   {student.full_name[0]?.toUpperCase()}
                 </div>
                 <p className="font-medium">{student.full_name}</p>

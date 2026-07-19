@@ -51,7 +51,7 @@ export default function FacultySearchList({ teachers }: { teachers: Teacher[] })
               className={cn(
                 'rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors border',
                 status === s
-                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  ? 'bg-[var(--brand-secondary)] text-white border-[var(--brand-secondary)]'
                   : 'text-muted-foreground border-border hover:bg-muted',
               )}
             >
@@ -69,8 +69,8 @@ export default function FacultySearchList({ teachers }: { teachers: Teacher[] })
             className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
-                <Users className="h-5 w-5 text-indigo-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)]">
+                <Users className="h-5 w-5 text-[var(--brand-secondary)]" />
               </div>
               <div>
                 <div className="flex items-center gap-2">

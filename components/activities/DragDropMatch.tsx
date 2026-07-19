@@ -181,7 +181,7 @@ export default function DragDropMatch({ items, mode, initialMatches, onAnswer }:
                     />
                   </div>
                 ) : (
-                  <span className="flex min-h-0 w-full flex-1 items-center justify-center text-2xl font-black text-indigo-600">
+                  <span className="flex min-h-0 w-full flex-1 items-center justify-center text-2xl font-black text-[var(--brand-secondary)]">
                     {item.label}
                   </span>
                 )}

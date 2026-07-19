@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Users } from 'lucide-react'
 import CreateSectionForTeacherForm from '@/components/admin/CreateSectionForTeacherForm'
 import AccountStatusToggle from '@/components/admin/AccountStatusToggle'
-import { deactivateTeacherAction, reactivateTeacherAction } from '@/app/actions/admin'
+import EditTeacherDialog from '@/components/admin/EditTeacherDialog'
+import ResendInviteButton from '@/components/admin/ResendInviteButton'
+import { deactivateTeacherAction, reactivateTeacherAction, resendTeacherInviteAction } from '@/app/actions/admin'
 import { Badge } from '@/components/ui/badge'
 
 interface Props { params: Promise<{ teacherId: string }> }
@@ -15,10 +18,15 @@ export default async function AdminTeacherProfilePage({ params }: Props) {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('id, full_name, is_active')
+    .select('id, full_name, first_name, last_name, id_number, is_active')
     .eq('id', teacherId)
     .single()
   if (!teacher) notFound()
+
+  // teachers has no email column — it only lives in auth.users.
+  const admin = createAdminClient()
+  const { data: authUser } = await admin.auth.admin.getUserById(teacherId)
+  const teacherEmail = authUser.user?.email ?? ''
 
   const { data: sections } = await supabase
     .from('sections')
@@ -49,14 +57,38 @@ export default async function AdminTeacherProfilePage({ params }: Props) {
             </Badge>
           </div>
         </div>
-        <AccountStatusToggle
-          id={teacher.id}
-          name={teacher.full_name}
-          isActive={teacher.is_active}
-          entityLabel="teacher"
-          deactivateAction={deactivateTeacherAction}
-          reactivateAction={reactivateTeacherAction}
-        />
+        <div className="flex items-center gap-2">
+          <EditTeacherDialog
+            teacherId={teacher.id}
+            firstName={teacher.first_name ?? ''}
+            lastName={teacher.last_name ?? ''}
+            email={teacherEmail}
+            idNumber={teacher.id_number ?? ''}
+          />
+          <ResendInviteButton id={teacher.id} resendAction={resendTeacherInviteAction} />
+          <AccountStatusToggle
+            id={teacher.id}
+            name={teacher.full_name}
+            isActive={teacher.is_active}
+            entityLabel="teacher"
+            deactivateAction={deactivateTeacherAction}
+            reactivateAction={reactivateTeacherAction}
+          />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-semibold mb-3">Information</h2>
+        <div className="rounded-xl border bg-card p-4 shadow-sm grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-xs text-muted-foreground">ID Number</p>
+            <p className="text-sm font-medium">{teacher.id_number ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Email</p>
+            <p className="text-sm font-medium">{teacherEmail || '—'}</p>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -71,8 +103,8 @@ export default async function AdminTeacherProfilePage({ params }: Props) {
               className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
-                  <Users className="h-5 w-5 text-indigo-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)]">
+                  <Users className="h-5 w-5 text-[var(--brand-secondary)]" />
                 </div>
                 <div>
                   <p className="font-semibold">{section.name}</p>

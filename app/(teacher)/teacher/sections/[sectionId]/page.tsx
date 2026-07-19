@@ -74,6 +74,7 @@ export default async function SectionDetailPage({ params }: Props) {
         enabledSubmoduleIds={enabledSubmoduleIds}
         isEnabled={isEnabled}
         studentHref={(studentId) => `/teacher/sections/${sectionId}/students/${studentId}`}
+        allowCreateStudent={false}
       />
     </div>
   )

@@ -4,8 +4,11 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { getStudentProgress } from '@/lib/queries/student-progress'
 import StudentProgressView from '@/components/shared/StudentProgressView'
+import StudentInfoCard from '@/components/shared/StudentInfoCard'
 import AccountStatusToggle from '@/components/admin/AccountStatusToggle'
-import { deactivateStudentAction, reactivateStudentAction } from '@/app/actions/admin'
+import EditStudentDialog from '@/components/admin/EditStudentDialog'
+import ResendInviteButton from '@/components/admin/ResendInviteButton'
+import { deactivateStudentAction, reactivateStudentAction, resendStudentInviteAction } from '@/app/actions/admin'
 import { Badge } from '@/components/ui/badge'
 
 interface Props { params: Promise<{ studentId: string }> }
@@ -16,7 +19,7 @@ export default async function AdminStudentProfilePage({ params }: Props) {
 
   const { data: student } = await supabase
     .from('students')
-    .select('id, full_name, section_id, is_active')
+    .select('id, full_name, first_name, last_name, email, id_number, section_id, is_active')
     .eq('id', studentId)
     .single()
   if (!student) notFound()
@@ -24,6 +27,21 @@ export default async function AdminStudentProfilePage({ params }: Props) {
   const { data: section } = student.section_id
     ? await supabase.from('sections').select('name').eq('id', student.section_id).single()
     : { data: null }
+
+  const { data: allSections } = await supabase
+    .from('sections')
+    .select('id, name, teacher_id')
+    .order('name')
+  const teacherIds = [...new Set((allSections ?? []).map((s) => s.teacher_id))]
+  const { data: sectionTeachers } = teacherIds.length > 0
+    ? await supabase.from('teachers').select('id, full_name').in('id', teacherIds)
+    : { data: [] }
+  const teacherNameById = new Map((sectionTeachers ?? []).map((t) => [t.id, t.full_name]))
+  const sectionOptions = (allSections ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    teacherName: teacherNameById.get(s.teacher_id) ?? 'Unknown',
+  }))
 
   const { learnProgress, attempts, answers } = await getStudentProgress(supabase, studentId)
 
@@ -44,15 +62,29 @@ export default async function AdminStudentProfilePage({ params }: Props) {
             </Badge>
           </div>
         </div>
-        <AccountStatusToggle
-          id={student.id}
-          name={student.full_name}
-          isActive={student.is_active}
-          entityLabel="student"
-          deactivateAction={deactivateStudentAction}
-          reactivateAction={reactivateStudentAction}
-        />
+        <div className="flex items-center gap-2">
+          <EditStudentDialog
+            studentId={student.id}
+            firstName={student.first_name ?? ''}
+            lastName={student.last_name ?? ''}
+            email={student.email ?? ''}
+            idNumber={student.id_number ?? ''}
+            sectionId={student.section_id}
+            sections={sectionOptions}
+          />
+          <ResendInviteButton id={student.id} resendAction={resendStudentInviteAction} />
+          <AccountStatusToggle
+            id={student.id}
+            name={student.full_name}
+            isActive={student.is_active}
+            entityLabel="student"
+            deactivateAction={deactivateStudentAction}
+            reactivateAction={reactivateStudentAction}
+          />
+        </div>
       </div>
+
+      <StudentInfoCard idNumber={student.id_number} email={student.email} sectionName={section?.name ?? null} />
 
       <StudentProgressView
         studentName={student.full_name}

@@ -27,7 +27,7 @@ export default function RecentActivityWidget({ logs, viewAllHref }: { logs: Audi
     <div className="flex h-full flex-col rounded-xl border bg-card shadow-sm">
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <h2 className="font-semibold">Recent Activity</h2>
-        <Link href={viewAllHref} className="text-sm text-indigo-600 hover:underline">
+        <Link href={viewAllHref} className="text-sm text-[var(--brand-secondary)] hover:underline">
           View all →
         </Link>
       </div>
@@ -44,7 +44,7 @@ export default function RecentActivityWidget({ logs, viewAllHref }: { logs: Audi
               className="flex items-start justify-between gap-3 rounded-xl border bg-card p-3 shadow-sm"
             >
               <div className="flex items-start gap-2.5 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)] text-xs font-bold text-[var(--brand-secondary)]">
                   {log.actor_name[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div className="min-w-0">

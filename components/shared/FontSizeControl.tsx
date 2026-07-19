@@ -7,7 +7,6 @@ const SIZES = [
   { id: 'small', label: 'S' },
   { id: 'normal', label: 'M' },
   { id: 'large', label: 'L' },
-  { id: 'xl', label: 'XL' },
 ] as const
 
 type FontSize = (typeof SIZES)[number]['id']

@@ -10,7 +10,7 @@ export default async function TeacherSettingsPage() {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('full_name')
+    .select('full_name, id_number')
     .eq('id', user!.id)
     .single()
 
@@ -21,34 +21,41 @@ export default async function TeacherSettingsPage() {
         <p className="text-muted-foreground">Manage your account.</p>
       </div>
 
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="text-base">Account</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <p className="text-sm font-medium">{teacher?.full_name ?? user?.user_metadata?.full_name ?? 'Teacher'}</p>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm font-medium">{teacher?.full_name ?? user?.user_metadata?.full_name ?? 'Teacher'}</p>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            {teacher?.id_number && (
+              <p className="text-sm text-muted-foreground">ID: {teacher.id_number}</p>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="text-base">Change Password</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChangePasswordForm />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Security</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordForm />
+          </CardContent>
+        </Card>
 
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="text-base">Personalization</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <FontSizeControl />
-          <ThemeToggle />
-        </CardContent>
-      </Card>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Personalization</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <FontSizeControl />
+              <ThemeToggle />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
