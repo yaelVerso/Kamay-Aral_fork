@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Module, SubModule, SignItem } from '@/content/types'
 import { ChevronLeft, ChevronRight, Play, Pause, Repeat } from 'lucide-react'
 import Link from 'next/link'
+import { labelTextSize } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import {
@@ -179,7 +180,7 @@ export default function LearnModeClient({ module: mod, submodule }: Props) {
 
           {/* Label + image */}
           <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-6 shadow-xs border-2 border-[#DAD2C5]">
-            <span className="text-6xl font-black tracking-tight text-[#007B89]">{selectedItem.label}</span>
+            <span className={`${labelTextSize(selectedItem.label, ['text-6xl', 'text-4xl', 'text-3xl'])} break-words text-center font-black tracking-tight text-[#007B89]`}>{selectedItem.label}</span>
             {selectedItem.labelFil && (
               <span className="text-lg text-muted-foreground">{selectedItem.labelFil}</span>
             )}

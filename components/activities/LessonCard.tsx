@@ -2,6 +2,7 @@
 
 import type { SignItem } from '@/content/types'
 import Image from 'next/image'
+import { labelTextSize } from '@/lib/utils'
 
 interface Props {
   item: SignItem
@@ -27,7 +28,7 @@ export default function LessonCard({ item }: Props) {
       </div>
 
       <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-6 shadow-xs border-2 border-[#DAD2C5]">
-        <span className="text-6xl font-black tracking-tight text-[#007B89]">{item.label}</span>
+        <span className={`${labelTextSize(item.label, ['text-6xl', 'text-4xl', 'text-3xl'])} break-words text-center font-black tracking-tight text-[#007B89]`}>{item.label}</span>
         {item.labelFil && <span className="text-base text-muted-foreground">{item.labelFil}</span>}
         {item.imagePath && (
           <div className="relative h-28 w-28 mt-1">

@@ -310,8 +310,10 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
         </span>
       </div>
 
-      {/* Activity content */}
-      <div className="flex-1 px-4 pb-4 overflow-y-auto">
+      {/* Activity content — flows naturally with the page (no internal
+          scroll region) so Previous/Next below sits directly against it,
+          same as Learn Mode, instead of being pinned to the viewport bottom. */}
+      <div className="px-4">
         {current.type === 'lesson-card' && (
           <LessonCard key={stepIndex} item={current.item} />
         )}
@@ -355,7 +357,7 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       </div>
 
       {/* Previous / Next — width-matched to the activity content (lg:w-3/4 lg:mx-auto) above */}
-      <div className="flex gap-3 px-4 pb-4 lg:w-3/4 lg:mx-auto">
+      <div className="flex gap-3 px-4 pt-4 pb-4 lg:w-3/4 lg:mx-auto">
         <button
           onClick={goPrevious}
           disabled={stepIndex === 0}

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { SignItem } from '@/content/types'
 import Image from 'next/image'
-import { cn } from '@/lib/utils'
+import { cn, labelTextSize } from '@/lib/utils'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { shuffle } from '@/lib/shuffle'
@@ -181,10 +181,10 @@ export default function DragDropMatch({ items, mode, initialMatches, onAnswer }:
                         className="object-contain"
                       />
                     </div>
-                    <span className="text-2xl font-bold mt-3">{item.label}</span>
+                    <span className={`${labelTextSize(item.label, ['text-2xl', 'text-lg', 'text-sm'])} break-words text-center font-bold mt-3`}>{item.label}</span>
                   </>
                 ) : (
-                  <span className="flex min-h-0 w-full flex-1 items-center justify-center text-2xl font-black text-[var(--brand-secondary)]">
+                  <span className={`flex min-h-0 w-full flex-1 items-center justify-center px-1 text-center ${labelTextSize(item.label, ['text-2xl', 'text-lg', 'text-sm'])} break-words font-black text-[var(--brand-secondary)]`}>
                     {item.label}
                   </span>
                 )}
