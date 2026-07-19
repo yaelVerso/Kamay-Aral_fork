@@ -37,7 +37,7 @@ export default function CreateSectionForTeacherForm({ teacherId }: { teacherId: 
         placeholder="Section name (e.g. Apple)"
         className="flex-1"
       />
-      <Button type="submit" disabled={loading || !name.trim()} className="gap-1.5 bg-indigo-600 hover:bg-indigo-700">
+      <Button type="submit" disabled={loading || !name.trim()} className="gap-1.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]">
         <Plus className="h-4 w-4" />
         Create
       </Button>

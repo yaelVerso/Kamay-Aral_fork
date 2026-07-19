@@ -164,28 +164,30 @@ export default function DragDropMatch({ items, mode, initialMatches, onAnswer }:
                 disabled={locked}
                 className={cn(
                   'relative aspect-video flex w-full flex-col items-center justify-center rounded-xl border-3 p-2 transition-all active:scale-95',
-                  selectedVideo && !isMatched ? 'border-[#D9BA87] bg-[#ECE7DF]' : 'border-[#DAD2C5] bg-white',
+                  selectedVideo && !isMatched ? 'border-[#D9BA87] bg-[#ECE7DF]' : 'border-[#DAD2C5] bg-card',
                   isMatched && !locked && color && cn(color.border, color.bg),
                   locked && matchedCorrectly && 'border-[#579F10] bg-[#D8F2BF]',
                   locked && !matchedCorrectly && isMatched && 'border-[#C61518] bg-[#FFDEDF]',
                 )}
               >
                 {item.imagePath ? (
-                  <div className="relative min-h-0 w-full flex-1">
-                    <Image
-                      src={item.imagePath}
-                      alt={item.label}
-                      fill
-                      sizes="(max-width: 1023px) 50vw, 25vw"
-                      className="object-contain"
-                    />
-                  </div>
+                  <>
+                    <div className="relative min-h-0 w-full flex-1">
+                      <Image
+                        src={item.imagePath}
+                        alt={item.label}
+                        fill
+                        sizes="(max-width: 1023px) 50vw, 25vw"
+                        className="object-contain"
+                      />
+                    </div>
+                    <span className="text-2xl font-bold mt-3">{item.label}</span>
+                  </>
                 ) : (
-                  <span className="flex min-h-0 w-full flex-1 items-center justify-center text-2xl font-black text-indigo-600">
+                  <span className="flex min-h-0 w-full flex-1 items-center justify-center text-2xl font-black text-[var(--brand-secondary)]">
                     {item.label}
                   </span>
                 )}
-                <span className="text-2xl font-bold mt-3">{item.label}</span>
               </button>
             )
           })}

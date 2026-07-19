@@ -20,12 +20,14 @@ export async function createTeacherAction(payload: {
   firstName: string
   lastName: string
   email: string
+  idNumber: string
 }) {
   await requireAdmin()
 
   const firstName = payload.firstName.trim()
   const lastName = payload.lastName.trim()
   const fullName = `${firstName} ${lastName}`.trim()
+  const idNumber = payload.idNumber.trim()
 
   const admin = createAdminClient()
 
@@ -40,9 +42,10 @@ export async function createTeacherAction(payload: {
 
   const { error: teacherError } = await admin
     .from('teachers')
-    .insert({ id: userId, full_name: fullName, first_name: firstName, last_name: lastName })
+    .insert({ id: userId, full_name: fullName, first_name: firstName, last_name: lastName, id_number: idNumber })
   if (teacherError) {
     await admin.auth.admin.deleteUser(userId)
+    if (teacherError.code === '23505') throw new Error('That ID number is already in use.')
     throw new Error(teacherError.message)
   }
 
@@ -61,6 +64,7 @@ export async function createStudentAction(payload: {
   firstName: string
   lastName: string
   email: string
+  idNumber: string
   sectionId?: string | null
 }) {
   const supabase = await createClient()
@@ -85,6 +89,7 @@ export async function createStudentAction(payload: {
   const lastName = payload.lastName.trim()
   const fullName = `${firstName} ${lastName}`.trim()
   const email = payload.email.trim()
+  const idNumber = payload.idNumber.trim()
 
   const admin = createAdminClient()
 
@@ -104,9 +109,11 @@ export async function createStudentAction(payload: {
     first_name: firstName,
     last_name: lastName,
     email,
+    id_number: idNumber,
   })
   if (studentError) {
     await admin.auth.admin.deleteUser(userId)
+    if (studentError.code === '23505') throw new Error('That ID number is already in use.')
     throw new Error(studentError.message)
   }
 
@@ -191,6 +198,111 @@ export async function reactivateStudentAction(studentId: string) {
   if (error) throw new Error(error.message)
 
   await recordAuditLog({ action: 'student.reactivate', description: `reactivated student account for ${student?.full_name ?? 'a student'}` })
+}
+
+export async function updateTeacherAction(payload: {
+  teacherId: string
+  firstName: string
+  lastName: string
+  idNumber: string
+  email: string
+}) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const firstName = payload.firstName.trim()
+  const lastName = payload.lastName.trim()
+  const fullName = `${firstName} ${lastName}`.trim()
+  const idNumber = payload.idNumber.trim()
+  const email = payload.email.trim()
+
+  const { error: authError } = await admin.auth.admin.updateUserById(payload.teacherId, {
+    email,
+    user_metadata: { role: 'teacher', full_name: fullName },
+  })
+  if (authError) throw new Error(authError.message)
+
+  const { error } = await admin
+    .from('teachers')
+    .update({ full_name: fullName, first_name: firstName, last_name: lastName, id_number: idNumber })
+    .eq('id', payload.teacherId)
+  if (error) {
+    if (error.code === '23505') throw new Error('That ID number is already in use.')
+    throw new Error(error.message)
+  }
+
+  await recordAuditLog({ action: 'teacher.update', description: `updated teacher account for ${fullName}` })
+}
+
+export async function updateStudentAction(payload: {
+  studentId: string
+  firstName: string
+  lastName: string
+  idNumber: string
+  email: string
+  sectionId: string | null
+}) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const firstName = payload.firstName.trim()
+  const lastName = payload.lastName.trim()
+  const fullName = `${firstName} ${lastName}`.trim()
+  const idNumber = payload.idNumber.trim()
+  const email = payload.email.trim()
+
+  const { error: authError } = await admin.auth.admin.updateUserById(payload.studentId, { email })
+  if (authError) throw new Error(authError.message)
+
+  const { error } = await admin
+    .from('students')
+    .update({ full_name: fullName, first_name: firstName, last_name: lastName, id_number: idNumber, email, section_id: payload.sectionId })
+    .eq('id', payload.studentId)
+  if (error) {
+    if (error.code === '23505') throw new Error('That ID number is already in use.')
+    throw new Error(error.message)
+  }
+
+  await recordAuditLog({ action: 'student.update', description: `updated student account for ${fullName}` })
+}
+
+export async function resendTeacherInviteAction(teacherId: string) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const { data: teacher } = await admin.from('teachers').select('full_name').eq('id', teacherId).single()
+  const { data: authUser, error: userError } = await admin.auth.admin.getUserById(teacherId)
+  if (userError || !authUser.user.email) throw new Error('Could not find that teacher\'s email address')
+
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email: authUser.user.email,
+    options: { redirectTo: `${SITE_URL}/setup-password?role=teacher` },
+  })
+  if (linkError) throw new Error(linkError.message)
+
+  await sendTeacherInviteEmail(authUser.user.email, teacher?.full_name ?? 'there', linkData.properties.action_link)
+
+  await recordAuditLog({ action: 'teacher.resend_invite', description: `resent invite for ${teacher?.full_name ?? 'a teacher'}` })
+}
+
+export async function resendStudentInviteAction(studentId: string) {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const { data: student } = await admin.from('students').select('full_name, email').eq('id', studentId).single()
+  if (!student?.email) throw new Error('That student has no email on file')
+
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email: student.email,
+    options: { redirectTo: `${SITE_URL}/setup-password?role=student` },
+  })
+  if (linkError) throw new Error(linkError.message)
+
+  await sendStudentInviteEmail(student.email, student.full_name, linkData.properties.action_link)
+
+  await recordAuditLog({ action: 'student.resend_invite', description: `resent invite for ${student.full_name}` })
 }
 
 export async function createSectionForTeacherAction(payload: { teacherId: string; name: string }) {

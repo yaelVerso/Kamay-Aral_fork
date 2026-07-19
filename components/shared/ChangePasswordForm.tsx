@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
+import { PASSWORD_MIN_LENGTH, PASSWORD_HINT, isPasswordValid } from '@/lib/passwordPolicy'
 
 export default function ChangePasswordForm() {
   const [password, setPassword] = useState('')
@@ -16,6 +17,10 @@ export default function ChangePasswordForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!isPasswordValid(password)) {
+      toast.error(PASSWORD_HINT)
+      return
+    }
     if (password !== confirmPassword) {
       toast.error('Passwords do not match')
       return
@@ -45,9 +50,9 @@ export default function ChangePasswordForm() {
             type={showPass ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder={PASSWORD_HINT}
             required
-            minLength={6}
+            minLength={PASSWORD_MIN_LENGTH}
           />
           <button
             type="button"
@@ -57,6 +62,7 @@ export default function ChangePasswordForm() {
             {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
+        <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="confirm-new-password">Confirm New Password</Label>
@@ -67,7 +73,7 @@ export default function ChangePasswordForm() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Re-enter new password"
           required
-          minLength={6}
+          minLength={PASSWORD_MIN_LENGTH}
         />
       </div>
       <Button type="submit" disabled={loading}>

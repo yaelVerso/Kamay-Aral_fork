@@ -66,7 +66,7 @@ export default function AuditLogList({ logs }: { logs: AuditLog[] }) {
               className={cn(
                 'rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors border',
                 role === r
-                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  ? 'bg-[var(--brand-secondary)] text-white border-[var(--brand-secondary)]'
                   : 'text-muted-foreground border-border hover:bg-muted',
               )}
             >
@@ -80,10 +80,10 @@ export default function AuditLogList({ logs }: { logs: AuditLog[] }) {
         {filtered.map((log) => (
           <div
             key={log.id}
-            className="flex items-start justify-between gap-3 rounded-xl border bg-white p-3.5 shadow-sm"
+            className="flex items-start justify-between gap-3 rounded-xl border bg-card p-3.5 shadow-sm"
           >
             <div className="flex items-start gap-3 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-600">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)] text-sm font-bold text-[var(--brand-secondary)]">
                 {log.actor_name[0]?.toUpperCase() ?? '?'}
               </div>
               <div className="min-w-0">

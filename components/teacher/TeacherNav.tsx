@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, Settings, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -12,10 +13,15 @@ const navItemClass = 'flex items-center gap-2 rounded-md px-6 py-3 text-sm font-
 
 const links = [
   { href: '/teacher/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/teacher/sections', label: 'Sections', icon: Users },
+  { href: '/teacher/sections', label: 'Class Management', icon: Users },
 ]
 
-export default function TeacherNav() {
+interface Props {
+  systemName: string
+  logoUrl: string | null
+}
+
+export default function TeacherNav({ systemName, logoUrl }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -27,10 +33,17 @@ export default function TeacherNav() {
     router.push('/login')
   }
 
+  const brandLabel = (
+    <span className="flex items-center gap-2">
+      {logoUrl && <Image src={logoUrl} alt={systemName} width={28} height={28} className="h-7 w-7 object-contain" />}
+      {systemName}
+    </span>
+  )
+
   const content = (
     <>
       <Link href="/teacher/dashboard" className="text-2xl font-black text-white p-6 block">
-        Kamay Aral
+        {brandLabel}
       </Link>
       <nav className="flex flex-col gap-1 px-2">
         {links.map(({ href, label, icon: Icon }) => {
@@ -78,21 +91,21 @@ export default function TeacherNav() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="flex items-center justify-between border-b bg-[#007B89] px-4 py-3 md:hidden">
-        <span className="text-lg font-bold text-white">Kamay Aral</span>
+      <div className="flex items-center justify-between border-b bg-[var(--brand-primary)] px-4 py-3 md:hidden">
+        <span className="text-lg font-bold text-white">{brandLabel}</span>
         <button onClick={() => setOpen((o) => !o)} className="text-white">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
       {open && (
-        <div className="flex flex-col border-b bg-[#007B89] pb-2 md:hidden">{content}</div>
+        <div className="flex flex-col border-b bg-[var(--brand-primary)] pb-2 md:hidden">{content}</div>
       )}
 
       {/* Desktop sidebar — sticky + h-screen (not min-h-screen) so it stays
           pinned to the viewport instead of stretching to match tall page
           content (e.g. a long audit log list), which pushed Settings/Sign
           out below the fold and required scrolling the whole page to reach. */}
-      <aside className="hidden md:flex md:w-70 md:flex-col md:border-r md:bg-[#007B89] md:h-screen md:sticky md:top-0 md:overflow-y-auto">
+      <aside className="hidden md:flex md:w-70 md:flex-col md:border-r md:bg-[var(--brand-primary)] md:h-screen md:sticky md:top-0 md:overflow-y-auto">
         {content}
       </aside>
     </>

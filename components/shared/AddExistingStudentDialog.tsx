@@ -106,7 +106,7 @@ export default function AddExistingStudentDialog({ sectionId }: { sectionId: str
                 size="sm"
                 disabled={addingId === student.id}
                 onClick={() => handleAdd(student.id)}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]"
               >
                 {addingId === student.id ? 'Adding…' : 'Add'}
               </Button>

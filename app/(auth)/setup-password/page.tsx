@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
+import { PASSWORD_MIN_LENGTH, PASSWORD_HINT, isPasswordValid } from '@/lib/passwordPolicy'
 
 function destinationFor(role: string | undefined) {
   if (role === 'admin') return '/admin/overview'
@@ -72,6 +73,10 @@ export default function SetupPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!isPasswordValid(password)) {
+      toast.error(PASSWORD_HINT)
+      return
+    }
     if (password !== confirmPassword) {
       toast.error('Passwords do not match')
       return
@@ -134,9 +139,9 @@ export default function SetupPasswordPage() {
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder={PASSWORD_HINT}
                 required
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
               />
               <button
                 type="button"
@@ -146,6 +151,7 @@ export default function SetupPasswordPage() {
                 {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -156,7 +162,7 @@ export default function SetupPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Re-enter password"
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
             />
           </div>
           <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>

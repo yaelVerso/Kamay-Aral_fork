@@ -1,19 +1,52 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Module, SubModule, SignItem } from '@/content/types'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, Pause, Repeat } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
+import {
+  readBooleanSetting,
+  VIDEO_MANUAL_PLAY_STORAGE_KEY,
+} from '@/lib/settings'
 
 interface Props {
   module: Module
   submodule: SubModule
 }
 
+const SPEEDS = [0.5, 0.75, 1] as const
+
 export default function LearnModeClient({ module: mod, submodule }: Props) {
   const [selectedItem, setSelectedItem] = useState<SignItem>(submodule.items[0])
+  const [manualPlay, setManualPlay] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [looping, setLooping] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState<(typeof SPEEDS)[number]>(1)
+  const [isPaused, setIsPaused] = useState(true)
+
+  useEffect(() => {
+    setManualPlay(readBooleanSetting(VIDEO_MANUAL_PLAY_STORAGE_KEY, true))
+  }, [])
+
+  // The video element remounts on every item change (key={selectedItem.videoPath}),
+  // so DOM-only properties like playbackRate need to be reapplied each time —
+  // loop is fine since it's bound as a JSX attribute below.
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate
+  }, [selectedItem, playbackRate])
+
+  function togglePause() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) video.play()
+    else video.pause()
+  }
+
+  function toggleLoop() {
+    setLooping((l) => !l)
+  }
 
   const markViewed = useCallback(async (item: SignItem) => {
     const supabase = createClient()
@@ -53,7 +86,7 @@ export default function LearnModeClient({ module: mod, submodule }: Props) {
   const itemButtonClass = (item: SignItem) =>
     `flex shrink-0 items-center justify-center whitespace-nowrap rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition-all active:scale-95 lg:w-full lg:px-3 ${selectedItem.id === item.id
       ? 'border-[#007B89] bg-[#007B89] text-white'
-      : 'border-[#DAD2C5] bg-white text-foreground hover:border-[#0BC2D7]'
+      : 'border-[#DAD2C5] bg-card text-foreground hover:border-[#0BC2D7]'
     }`
 
   return (
@@ -98,18 +131,54 @@ export default function LearnModeClient({ module: mod, submodule }: Props) {
           <div className="relative aspect-video w-full rounded-2xl bg-black overflow-hidden">
             <video
               key={selectedItem.videoPath}
+              ref={videoRef}
               src={selectedItem.videoPath}
               controls
+              loop={looping}
+              autoPlay={!manualPlay}
               playsInline
               preload="metadata"
               className="h-full w-full object-contain"
+              onPlay={() => setIsPaused(false)}
+              onPause={() => setIsPaused(true)}
             >
               <source src={selectedItem.videoPath} type="video/mp4" />
             </video>
           </div>
 
+          {/* Video controls — icon-only, supplementing the native scrub bar */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={togglePause}
+              aria-label={isPaused ? 'Play' : 'Pause'}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[#DAD2C5] bg-card hover:border-[#0BC2D7] transition-colors"
+            >
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={toggleLoop}
+              aria-label={looping ? 'Unloop' : 'Loop'}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${looping ? 'border-[#007B89] bg-[#007B89] text-white' : 'border-[#DAD2C5] bg-card hover:border-[#0BC2D7]'
+                }`}
+            >
+              <Repeat className="h-4 w-4" />
+            </button>
+            <div className="mx-1 h-6 w-px bg-[#DAD2C5]" />
+            {SPEEDS.map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setPlaybackRate(speed)}
+                aria-label={speed === 1 ? 'Normal speed' : `${speed}x speed`}
+                className={`flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-xs font-bold transition-colors ${playbackRate === speed ? 'border-[#007B89] bg-[#007B89] text-white' : 'border-[#DAD2C5] bg-card hover:border-[#0BC2D7]'
+                  }`}
+              >
+                {speed === 1 ? '1x' : `${speed}x`}
+              </button>
+            ))}
+          </div>
+
           {/* Label + image */}
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 shadow-xs border-2 border-[#DAD2C5]">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-6 shadow-xs border-2 border-[#DAD2C5]">
             <span className="text-6xl font-black tracking-tight text-[#007B89]">{selectedItem.label}</span>
             {selectedItem.labelFil && (
               <span className="text-lg text-muted-foreground">{selectedItem.labelFil}</span>
@@ -131,7 +200,7 @@ export default function LearnModeClient({ module: mod, submodule }: Props) {
             <button
               onClick={prev}
               disabled={currentIndex === 0}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white border border-[#DAD2C5] shadow-[0_4px_0_#DAD2C5] py-3 text-lg font-semibold disabled:opacity-40 hover:bg-muted transition-colors"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-card border border-[#DAD2C5] shadow-[0_4px_0_#DAD2C5] py-3 text-lg font-semibold disabled:opacity-40 hover:bg-muted transition-colors"
             >
               <ChevronLeft className="h-6 w-6" />
               Previous

@@ -49,8 +49,8 @@ export default function QuizToggle({ sectionId, sectionName, submoduleId, submod
       disabled={loading}
       aria-checked={enabled}
       role="switch"
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50 ${
-        enabled ? 'bg-indigo-600' : 'bg-muted'
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] focus-visible:ring-offset-2 disabled:opacity-50 ${
+        enabled ? 'bg-[var(--brand-secondary)]' : 'bg-muted'
       }`}
     >
       <span

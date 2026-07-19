@@ -74,24 +74,26 @@ export default function SignToPicture({ item, distractors, mode, initialAnswer, 
               onClick={() => handleSelect(choice.id)}
               disabled={locked}
               className={cn(
-                'relative flex flex-col items-center gap-2 rounded-2xl bg-white p-6 shadow-xs border-2 border-[#DAD2C5] transition-all active:scale-95',
-                !answered && !isSelected && 'hover:border-[#0BC2D7] border-border bg-white',
+                'relative flex flex-col items-center gap-2 rounded-2xl bg-card p-6 shadow-xs border-2 border-[#DAD2C5] transition-all active:scale-95',
+                !answered && !isSelected && 'hover:border-[#0BC2D7] border-border bg-card',
                 !answered && isSelected && 'border-[#0BC2D7] bg-[#0BC2D7]/10',
                 answered && isCorrect && 'border-[#579F10] bg-[#D8F2BF]',
                 answered && isSelected && !isCorrect && 'border-[#C61518] bg-[#FFDEDF]',
-                answered && !isSelected && !isCorrect && 'border-border bg-white opacity-60',
+                answered && !isSelected && !isCorrect && 'border-border bg-card opacity-60',
               )}
             >
               {choice.imagePath ? (
-                <div className="relative h-20 w-full">
-                  <Image src={choice.imagePath} alt={choice.label} fill className="object-contain" />
-                </div>
+                <>
+                  <div className="relative h-20 w-full">
+                    <Image src={choice.imagePath} alt={choice.label} fill className="object-contain" />
+                  </div>
+                  <span className="text-xl font-bold">{choice.label}</span>
+                </>
               ) : (
-                <div className="flex h-20 w-full items-center justify-center text-3xl font-black text-indigo-600">
+                <div className="flex h-20 w-full items-center justify-center text-3xl font-black text-[var(--brand-secondary)]">
                   {choice.label}
                 </div>
               )}
-              <span className="text-xl font-bold">{choice.label}</span>
               {answered && isCorrect && (
                 <CheckCircle2 className="absolute right-2 top-2 h-10 w-10 text-[#579F10]" />
               )}

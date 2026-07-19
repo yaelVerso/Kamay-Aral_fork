@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/components/shared/LogoutButton'
 import FontSizeControl from '@/components/shared/FontSizeControl'
+import ThemeToggle from '@/components/shared/ThemeToggle'
+import VideoPlaybackSettings from '@/components/shared/VideoPlaybackSettings'
+import ChangePasswordForm from '@/components/shared/ChangePasswordForm'
+import { Separator } from '@/components/ui/separator'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -8,7 +12,7 @@ export default async function ProfilePage() {
 
   const { data: student } = await supabase
     .from('students')
-    .select('full_name, created_at, section_id')
+    .select('full_name, created_at, section_id, id_number')
     .eq('id', user!.id)
     .single()
 
@@ -40,6 +44,9 @@ export default async function ProfilePage() {
         <div>
           <h1 className="text-2xl text-[#694B26] font-black">{student?.full_name}</h1>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
+          {student?.id_number && (
+            <p className="text-sm text-muted-foreground">ID: {student.id_number}</p>
+          )}
         </div>
       </div>
 
@@ -47,7 +54,7 @@ export default async function ProfilePage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Class
         </h2>
-        <div className="rounded-xl border bg-white p-4 shadow-sm space-y-1">
+        <div className="rounded-xl border bg-card p-4 shadow-sm space-y-1">
           {sectionName ? (
             <>
               <p className="text-sm"><span className="text-muted-foreground">Section:</span> <span className="font-medium">{sectionName}</span></p>
@@ -63,8 +70,21 @@ export default async function ProfilePage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Settings
         </h2>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="rounded-xl border bg-card p-4 shadow-sm space-y-5">
           <FontSizeControl />
+          <Separator />
+          <ThemeToggle />
+          <Separator />
+          <VideoPlaybackSettings />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Security
+        </h2>
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
+          <ChangePasswordForm />
         </div>
       </div>
 

@@ -23,15 +23,16 @@ export default function CreateTeacherDialog() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [idNumber, setIdNumber] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
-      await createTeacherAction({ firstName, lastName, email })
+      await createTeacherAction({ firstName, lastName, email, idNumber })
       toast.success(`Invite sent to ${email}`)
-      setFirstName(''); setLastName(''); setEmail(''); setOpen(false)
+      setFirstName(''); setLastName(''); setEmail(''); setIdNumber(''); setOpen(false)
       router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create teacher account')
@@ -42,7 +43,7 @@ export default function CreateTeacherDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button className="gap-1.5 bg-indigo-600 hover:bg-indigo-700" onClick={() => setOpen(true)}>
+      <Button className="gap-1.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]" onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4" />
         Create Teacher Account
       </Button>
@@ -54,6 +55,10 @@ export default function CreateTeacherDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleCreate} className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="idNumber">ID Number</Label>
+            <Input id="idNumber" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} required />
+          </div>
           <div className="space-y-1">
             <Label htmlFor="firstName">First Name</Label>
             <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
@@ -67,7 +72,7 @@ export default function CreateTeacherDialog() {
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button type="submit" disabled={loading} className="bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]">
               {loading ? 'Sending invite…' : 'Send Invite'}
             </Button>
           </DialogFooter>
