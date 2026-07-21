@@ -61,3 +61,26 @@ export async function uploadBrandingLogoAction(formData: FormData) {
 
   return publicUrl.publicUrl
 }
+
+export async function removeBrandingLogoAction() {
+  await requireAdmin()
+  const admin = createAdminClient()
+
+  const { data: current } = await admin.from('app_settings').select('logo_url').eq('id', true).single()
+
+  const { error } = await admin
+    .from('app_settings')
+    .update({ logo_url: null, updated_at: new Date().toISOString() })
+    .eq('id', true)
+  if (error) throw new Error(error.message)
+
+  // Best-effort cleanup of the stored file — the branding still resets to
+  // the default logo above even if this fails, so don't let a storage
+  // error surface to the admin.
+  if (current?.logo_url) {
+    const path = current.logo_url.split('/branding/').pop()
+    if (path) await admin.storage.from('branding').remove([path])
+  }
+
+  await recordAuditLog({ action: 'branding.update', description: 'removed system logo' })
+}
