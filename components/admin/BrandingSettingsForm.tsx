@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { updateBrandingAction, uploadBrandingLogoAction } from '@/app/actions/branding'
+import { updateBrandingAction, uploadBrandingLogoAction, removeBrandingLogoAction } from '@/app/actions/branding'
 
 interface Props {
   systemName: string | null
@@ -24,6 +24,7 @@ export default function BrandingSettingsForm({ systemName, logoUrl, primaryColor
   const [preview, setPreview] = useState(logoUrl)
   const [savingDetails, setSavingDetails] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [removingLogo, setRemovingLogo] = useState(false)
 
   async function handleSaveDetails(e: React.FormEvent) {
     e.preventDefault()
@@ -61,6 +62,20 @@ export default function BrandingSettingsForm({ systemName, logoUrl, primaryColor
     }
   }
 
+  async function handleRemoveLogo() {
+    setRemovingLogo(true)
+    try {
+      await removeBrandingLogoAction()
+      setPreview(null)
+      toast.success('Logo removed')
+      router.refresh()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove logo')
+    } finally {
+      setRemovingLogo(false)
+    }
+  }
+
   return (
     <form onSubmit={handleSaveDetails} className="space-y-8">
       <div className="space-y-5">
@@ -90,11 +105,22 @@ export default function BrandingSettingsForm({ systemName, logoUrl, primaryColor
             <Button
               type="button"
               variant="outline"
-              disabled={uploadingLogo}
+              disabled={uploadingLogo || removingLogo}
               onClick={() => fileInputRef.current?.click()}
             >
               {uploadingLogo ? 'Uploading…' : 'Upload logo'}
             </Button>
+            {preview && (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-red-600 hover:text-red-700"
+                disabled={uploadingLogo || removingLogo}
+                onClick={handleRemoveLogo}
+              >
+                {removingLogo ? 'Removing…' : 'Remove logo'}
+              </Button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
