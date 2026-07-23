@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { recordAuditLog } from '@/app/actions/audit'
+import { recordAuditLog, recordFailedLoginAttempt } from '@/app/actions/audit'
 import { resolveLoginEmail } from '@/app/actions/auth'
 
 function destinationFor(role: string | undefined) {
@@ -53,6 +53,7 @@ export default function LoginForm({ systemName, logoUrl }: Props) {
       window.location.href = destinationFor(data.user.user_metadata?.role)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Login failed')
+      await recordFailedLoginAttempt(identifier)
     } finally {
       setLoading(false)
     }
