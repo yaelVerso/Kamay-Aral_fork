@@ -41,3 +41,34 @@ export async function recordAuditLog(payload: {
     // swallow — never surface a logging error to the caller
   }
 }
+
+// no session exists yet at a failed login, so this can't reuse recordAuditLog
+// (which derives the actor from the current session) — goes straight through
+// the service-role client instead
+export async function recordFailedLoginAttempt(identifier: string) {
+  try {
+    const trimmed = identifier.trim()
+    const admin = createAdminClient()
+    let role = 'unknown'
+
+    if (!trimmed.includes('@')) {
+      const { data: student } = await admin.from('students').select('id').eq('id_number', trimmed).maybeSingle()
+      if (student) {
+        role = 'student'
+      } else {
+        const { data: teacher } = await admin.from('teachers').select('id').eq('id_number', trimmed).maybeSingle()
+        if (teacher) role = 'teacher'
+      }
+    }
+
+    await admin.from('audit_logs').insert({
+      actor_id: null,
+      actor_name: trimmed,
+      actor_role: role,
+      action: 'auth.login_failed',
+      description: 'failed login attempt',
+    })
+  } catch {
+    // swallow — never surface a logging error to the caller
+  }
+}
