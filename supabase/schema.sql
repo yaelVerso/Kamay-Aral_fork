@@ -17,37 +17,6 @@ as $$
 $$;
 
 -- ============================================================
--- current_student_section_id() / current_student_teacher_id()
--- SECURITY DEFINER so the lookup runs as the function owner and
--- bypasses RLS internally. Required because "Students: view own
--- section" (on sections) and "Students: view own teacher" (on
--- teachers) need to read the student's own students row, but
--- "Teachers: manage students" (on students) reads sections — a
--- plain subquery on students from a sections/teachers policy
--- creates a students <-> sections RLS cycle that Postgres detects
--- as infinite recursion (error 42P17) on EVERY query against
--- students, not just the section/teacher lookups.
--- ============================================================
-create or replace function public.current_student_section_id()
-returns uuid
-language sql stable security definer
-set search_path = public
-as $$
-  select section_id from public.students where id = auth.uid();
-$$;
-
-create or replace function public.current_student_teacher_id()
-returns uuid
-language sql stable security definer
-set search_path = public
-as $$
-  select sec.teacher_id
-  from public.students s
-  join public.sections sec on sec.id = s.section_id
-  where s.id = auth.uid();
-$$;
-
--- ============================================================
 -- TEACHERS
 -- Uses Supabase Auth (auth.users) for credentials.
 -- One auth.user = one teacher profile.
@@ -80,10 +49,9 @@ create policy "Teachers: own profile" on public.teachers
 create policy "Admin: full access teachers" on public.teachers
   for all using (public.is_admin());
 
--- Students: read their own section's teacher (for the Profile page's
--- "Class" card — name only, via the "own profile" columns above).
-create policy "Students: view own teacher" on public.teachers
-  for select using (id = public.current_student_teacher_id());
+-- "Students: view own teacher" is added further below, once
+-- current_student_teacher_id() exists — that function needs
+-- students and sections, both created after this table.
 
 -- ============================================================
 -- SECTIONS
@@ -104,9 +72,9 @@ create policy "Sections: teacher owns" on public.sections
 create policy "Admin: full access sections" on public.sections
   for all using (public.is_admin());
 
--- Students: read their own section (for the Profile page's "Class" card)
-create policy "Students: view own section" on public.sections
-  for select using (id = public.current_student_section_id());
+-- "Students: view own section" is added further below, once
+-- current_student_section_id() exists — that function needs the
+-- students table, created after this one.
 
 -- ============================================================
 -- STUDENTS
@@ -186,6 +154,48 @@ create policy "Teachers: claim unassigned students" on public.students
 -- Admin: full access
 create policy "Admin: full access students" on public.students
   for all using (public.is_admin());
+
+-- ============================================================
+-- current_student_section_id() / current_student_teacher_id()
+-- SECURITY DEFINER so the lookup runs as the function owner and
+-- bypasses RLS internally. Required because "Students: view own
+-- section" (on sections) and "Students: view own teacher" (on
+-- teachers) need to read the student's own students row, but
+-- "Teachers: manage students" (on students) reads sections — a
+-- plain subquery on students from a sections/teachers policy
+-- creates a students <-> sections RLS cycle that Postgres detects
+-- as infinite recursion (error 42P17) on EVERY query against
+-- students, not just the section/teacher lookups.
+-- Defined here (not up with is_admin()) because a LANGUAGE SQL
+-- function's body is validated against the catalog at CREATE
+-- time — both students and sections must already exist.
+-- ============================================================
+create or replace function public.current_student_section_id()
+returns uuid
+language sql stable security definer
+set search_path = public
+as $$
+  select section_id from public.students where id = auth.uid();
+$$;
+
+create or replace function public.current_student_teacher_id()
+returns uuid
+language sql stable security definer
+set search_path = public
+as $$
+  select sec.teacher_id
+  from public.students s
+  join public.sections sec on sec.id = s.section_id
+  where s.id = auth.uid();
+$$;
+
+-- Deferred from the TEACHERS section above — needs current_student_teacher_id().
+create policy "Students: view own teacher" on public.teachers
+  for select using (id = public.current_student_teacher_id());
+
+-- Deferred from the SECTIONS section above — needs current_student_section_id().
+create policy "Students: view own section" on public.sections
+  for select using (id = public.current_student_section_id());
 
 -- ============================================================
 -- LEARN PROGRESS
@@ -340,6 +350,151 @@ create policy "Admin: full access quiz_answers" on public.quiz_answers
   for all using (public.is_admin());
 
 -- ============================================================
+-- CUSTOM MODULES (teacher-authored content)
+-- Separate from the built-in curriculum in content/registry.ts —
+-- purely additive, the 10 built-in modules are untouched by this.
+-- A teacher creates modules/submodules/signs of their own and
+-- chooses which of their own sections can see each module via
+-- custom_module_sections (a module isn't visible school-wide by
+-- default, only to sections it's explicitly assigned to).
+-- ============================================================
+create table public.custom_modules (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid not null references public.teachers(id) on delete cascade,
+  title text not null,
+  description text,
+  icon text not null default '📚',
+  color text not null default 'bg-[#BBE587] shadow-[0_4px_0_#82B740] hover:bg-[#A6E05F]',
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.custom_modules enable row level security;
+
+-- is_teacher_of_custom_module() — SECURITY DEFINER, same recursion
+-- fix as current_student_section_id() above. "CustomModules:
+-- student reads assigned" (below) reads custom_module_sections, and
+-- "CustomModuleSections: teacher manages own" reads custom_modules —
+-- a plain subquery there creates a custom_modules <->
+-- custom_module_sections RLS cycle (error 42P17). Must be defined
+-- here, after custom_modules exists — Postgres rejected this
+-- function at CREATE time (42P01) when it was placed earlier in
+-- the file, before the table it references existed.
+create or replace function public.is_teacher_of_custom_module(target_module_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.custom_modules
+    where id = target_module_id and teacher_id = auth.uid()
+  );
+$$;
+
+-- Which of a teacher's sections a custom module is visible to.
+-- Created here (before the policies below) because "CustomModules:
+-- student reads assigned" references it — a policy can't reference
+-- a table that doesn't exist yet. A teacher can only link modules/
+-- sections they themselves own — enforced by requiring both sides
+-- of the pair to trace back to their own teacher_id.
+create table public.custom_module_sections (
+  module_id uuid not null references public.custom_modules(id) on delete cascade,
+  section_id uuid not null references public.sections(id) on delete cascade,
+  assigned_at timestamptz not null default now(),
+  primary key (module_id, section_id)
+);
+alter table public.custom_module_sections enable row level security;
+
+create policy "CustomModules: teacher owns" on public.custom_modules
+  for all using (teacher_id = auth.uid());
+
+create policy "CustomModules: student reads assigned" on public.custom_modules
+  for select using (
+    id in (
+      select module_id from public.custom_module_sections
+      where section_id = public.current_student_section_id()
+    )
+  );
+
+create policy "Admin: full access custom_modules" on public.custom_modules
+  for all using (public.is_admin());
+
+create table public.custom_submodules (
+  id uuid primary key default gen_random_uuid(),
+  module_id uuid not null references public.custom_modules(id) on delete cascade,
+  title text not null,
+  short_title text not null,
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.custom_submodules enable row level security;
+
+create policy "CustomSubmodules: teacher owns" on public.custom_submodules
+  for all using (
+    module_id in (select id from public.custom_modules where teacher_id = auth.uid())
+  );
+
+create policy "CustomSubmodules: student reads assigned" on public.custom_submodules
+  for select using (
+    module_id in (
+      select module_id from public.custom_module_sections
+      where section_id = public.current_student_section_id()
+    )
+  );
+
+create policy "Admin: full access custom_submodules" on public.custom_submodules
+  for all using (public.is_admin());
+
+-- video_url accepts a YouTube (recommended, reliable embedding) or
+-- Google Drive share link — parsed into an embeddable URL at render
+-- time (see lib/videoEmbed.ts), not validated at the DB layer.
+create table public.custom_signs (
+  id uuid primary key default gen_random_uuid(),
+  submodule_id uuid not null references public.custom_submodules(id) on delete cascade,
+  label text not null,
+  label_fil text,
+  description text,
+  video_url text not null,
+  image_url text,
+  accepted_answers text[] not null default '{}',
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.custom_signs enable row level security;
+
+create policy "CustomSigns: teacher owns" on public.custom_signs
+  for all using (
+    submodule_id in (
+      select cs.id from public.custom_submodules cs
+      join public.custom_modules cm on cs.module_id = cm.id
+      where cm.teacher_id = auth.uid()
+    )
+  );
+
+create policy "CustomSigns: student reads assigned" on public.custom_signs
+  for select using (
+    submodule_id in (
+      select cs.id from public.custom_submodules cs
+      join public.custom_module_sections cms on cs.module_id = cms.module_id
+      where cms.section_id = public.current_student_section_id()
+    )
+  );
+
+create policy "Admin: full access custom_signs" on public.custom_signs
+  for all using (public.is_admin());
+
+create policy "CustomModuleSections: teacher manages own" on public.custom_module_sections
+  for all using (
+    public.is_teacher_of_custom_module(module_id)
+    and section_id in (select id from public.sections where teacher_id = auth.uid())
+  );
+
+create policy "CustomModuleSections: student reads own" on public.custom_module_sections
+  for select using (section_id = public.current_student_section_id());
+
+create policy "Admin: full access custom_module_sections" on public.custom_module_sections
+  for all using (public.is_admin());
+
+-- ============================================================
 -- AUDIT LOGS
 -- Records account/management actions by admins, teachers, and
 -- students. actor_id is intentionally NOT a foreign key so log
@@ -465,6 +620,10 @@ create index if not exists idx_learn_progress_student_id on public.learn_progres
 create index if not exists idx_quiz_answers_attempt_id on public.quiz_answers (attempt_id);
 create index if not exists idx_quiz_settings_section_id on public.quiz_settings (section_id);
 create index if not exists idx_audit_logs_created_at on public.audit_logs (created_at desc);
+create index if not exists idx_custom_modules_teacher_id on public.custom_modules (teacher_id);
+create index if not exists idx_custom_submodules_module_id on public.custom_submodules (module_id);
+create index if not exists idx_custom_signs_submodule_id on public.custom_signs (submodule_id);
+create index if not exists idx_custom_module_sections_section_id on public.custom_module_sections (section_id);
 
 -- ============================================================
 -- GRANTS
@@ -482,6 +641,10 @@ grant select, insert, update, delete on public.learn_progress to authenticated, 
 grant select, insert, update, delete on public.quiz_settings to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_attempts to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_answers to authenticated, service_role;
+grant select, insert, update, delete on public.custom_modules to authenticated, service_role;
+grant select, insert, update, delete on public.custom_submodules to authenticated, service_role;
+grant select, insert, update, delete on public.custom_signs to authenticated, service_role;
+grant select, insert, update, delete on public.custom_module_sections to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;
 grant select on public.app_settings to authenticated, anon;
 grant select, insert, update on public.app_settings to service_role;
