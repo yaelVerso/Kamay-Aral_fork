@@ -85,9 +85,11 @@ function firstUnansweredIndex(steps: ActivityStep[], stepAnswers: (QuizAnswer[] 
 }
 
 // interleaved per item: Lesson Card A → Sign to Picture A → Spelling A → Lesson Card B → ...
+// item order is shuffled per session (avoids always drilling early items first,
+// which would bias practice-answer data); each item's own triplet stays intact.
 // drag-drop-match is quiz-only, skipped here
 function buildActivitySteps(submodule: SubModule): ActivityStep[] {
-  const items = submodule.items
+  const items = shuffle(submodule.items)
   const perItemTypes = submodule.activitySequence.filter((t) => t !== 'drag-drop-match')
 
   const steps: ActivityStep[] = []
