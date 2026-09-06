@@ -316,7 +316,18 @@ create policy "Admin: full access quiz_attempts" on public.quiz_attempts
 
 -- ============================================================
 -- QUIZ ANSWERS
--- Per-question results within an attempt.
+-- Per-question results within an attempt. Saved as each question is
+-- answered (not batched at submit) so an abandoned quiz can resume
+-- where it left off — the unique constraint lets a changed answer
+-- (quiz questions stay editable until submit) upsert in place
+-- instead of accumulating duplicate rows for the same question.
+-- occurrence (0, 1, 2…) distinguishes the same item asked as the same
+-- question type more than once in one attempt — submodules with fewer
+-- items than the fixed quiz shape needs (5 sign-to-picture, 4 spelling,
+-- 2 drag-drop groups of 3) cycle their item pool, so e.g. the same item
+-- can legitimately appear in both drag-drop groups. Without this column
+-- those two distinct answers would collide on (attempt_id, item_id,
+-- activity_type) alone.
 -- ============================================================
 create table public.quiz_answers (
   id uuid primary key default gen_random_uuid(),
@@ -324,7 +335,9 @@ create table public.quiz_answers (
   activity_type text not null,
   item_id text not null,
   answer_given text,
-  is_correct boolean not null
+  is_correct boolean not null,
+  occurrence integer not null default 0,
+  unique (attempt_id, item_id, activity_type, occurrence)
 );
 alter table public.quiz_answers enable row level security;
 
@@ -347,6 +360,43 @@ create policy "QuizAnswers: teacher view" on public.quiz_answers
 
 -- Admin: full access
 create policy "Admin: full access quiz_answers" on public.quiz_answers
+  for all using (public.is_admin());
+
+-- ============================================================
+-- PRACTICE ANSWERS
+-- One row per scorable answer given in Activity (practice) mode.
+-- Unlike quizzes, practice is freely repeatable — there's no
+-- attempt/gating concept, so answers are logged directly as they're
+-- submitted rather than grouped under a parent attempt row. This is
+-- also the shape mastery scoring (BKT) wants: a plain timestamped
+-- stream of per-item correct/incorrect events.
+-- ============================================================
+create table public.practice_answers (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references public.students(id) on delete cascade,
+  submodule_id text not null,
+  activity_type text not null,
+  item_id text not null,
+  answer_given text,
+  is_correct boolean not null,
+  answered_at timestamptz not null default now()
+);
+alter table public.practice_answers enable row level security;
+
+create policy "PracticeAnswers: own" on public.practice_answers
+  for all using (student_id = auth.uid());
+
+create policy "PracticeAnswers: teacher view" on public.practice_answers
+  for select using (
+    student_id in (
+      select s.id from public.students s
+      join public.sections sec on s.section_id = sec.id
+      where sec.teacher_id = auth.uid()
+    )
+  );
+
+-- Admin: full access
+create policy "Admin: full access practice_answers" on public.practice_answers
   for all using (public.is_admin());
 
 -- ============================================================
@@ -641,6 +691,7 @@ grant select, insert, update, delete on public.learn_progress to authenticated, 
 grant select, insert, update, delete on public.quiz_settings to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_attempts to authenticated, service_role;
 grant select, insert, update, delete on public.quiz_answers to authenticated, service_role;
+grant select, insert, update, delete on public.practice_answers to authenticated, service_role;
 grant select, insert, update, delete on public.custom_modules to authenticated, service_role;
 grant select, insert, update, delete on public.custom_submodules to authenticated, service_role;
 grant select, insert, update, delete on public.custom_signs to authenticated, service_role;
