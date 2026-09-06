@@ -61,5 +61,18 @@ export default async function ClassQuizPage({ params }: Props) {
 
   if (!attemptId) redirect(`/class/${moduleId}`)
 
-  return <QuizGate module={mod} submodule={submodule} attemptId={attemptId} backHref={`/class/${moduleId}`} />
+  const { data: existingAnswers } = await supabase
+    .from('quiz_answers')
+    .select('activity_type, item_id, answer_given, is_correct')
+    .eq('attempt_id', attemptId)
+
+  return (
+    <QuizGate
+      module={mod}
+      submodule={submodule}
+      attemptId={attemptId}
+      backHref={`/class/${moduleId}`}
+      initialAnswers={existingAnswers ?? []}
+    />
+  )
 }

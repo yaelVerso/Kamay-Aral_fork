@@ -21,6 +21,17 @@ interface ActivityStep {
   groupItems?: SignItem[]
   /** For sign-to-picture: distractors */
   distractors?: SignItem[]
+  /**
+   * Which occurrence (0, 1, 2…) of this (type, item) pair this step is within
+   * the quiz — small submodules cycle their item pool to fill the fixed quiz
+   * shape, so the same item can legitimately appear twice as the same question
+   * type in one attempt. Assigned at build time from the deterministic
+   * pre-shuffle composition, so it stays stable across remounts even though
+   * display order/distractors are re-randomized every time. Quiz-only.
+   */
+  occurrence?: number
+  /** For drag-drop: occurrence per item in groupItems, same index alignment. */
+  groupOccurrences?: number[]
 }
 
 interface QuizAnswer {
@@ -28,6 +39,8 @@ interface QuizAnswer {
   item_id: string
   answer_given: string | null
   is_correct: boolean
+  /** Quiz-only — see ActivityStep.occurrence. Always 0 for practice mode. */
+  occurrence?: number
 }
 
 interface Props {
@@ -37,6 +50,38 @@ interface Props {
   attemptId?: string
   /** Defaults to the built-in module route; pass `/class/{id}/{submoduleId}` for a custom module. */
   backHref?: string
+  /** Answers already saved for this attempt (quiz only) — resumes at the first unanswered step instead of the start. */
+  initialAnswers?: QuizAnswer[]
+}
+
+// Matches each already-saved answer back to the step that produced it, by the
+// exact (activity_type, item_id, occurrence) key — quiz step order/distractors
+// are re-randomized on every mount, but occurrence is assigned from the
+// deterministic pre-shuffle composition, so this lookup stays exact even for
+// submodules small enough that the same item appears twice as one question type.
+function reconstructStepAnswers(steps: ActivityStep[], saved: QuizAnswer[]): (QuizAnswer[] | null)[] {
+  const byKey = new Map<string, QuizAnswer>()
+  for (const a of saved) byKey.set(`${a.activity_type}::${a.item_id}::${a.occurrence ?? 0}`, a)
+
+  return steps.map((step) => {
+    if (step.type === 'lesson-card') return null
+    const group = step.type === 'drag-drop-match' ? step.groupItems ?? [step.item] : [step.item]
+    const occurrences = step.type === 'drag-drop-match' ? step.groupOccurrences ?? [] : [step.occurrence ?? 0]
+    const results: QuizAnswer[] = []
+    for (let i = 0; i < group.length; i++) {
+      const found = byKey.get(`${step.type}::${group[i].id}::${occurrences[i] ?? 0}`)
+      if (!found) return null
+      results.push(found)
+    }
+    return results
+  })
+}
+
+function firstUnansweredIndex(steps: ActivityStep[], stepAnswers: (QuizAnswer[] | null)[]): number {
+  for (let i = 0; i < steps.length; i++) {
+    if (steps[i].type !== 'lesson-card' && stepAnswers[i] === null) return i
+  }
+  return Math.max(0, steps.length - 1)
 }
 
 // interleaved per item: Lesson Card A → Sign to Picture A → Spelling A → Lesson Card B → ...
@@ -88,32 +133,46 @@ function pickItemsCoveringAll(pool: SignItem[], count: number): SignItem[] {
 }
 
 // fixed quiz shape: 5 sign-to-picture, 4 spelling, 2 drag-drop-match groups
-// only presentation (question order, distractors, layout) is randomized per attempt
+// only presentation (question order, distractors, layout) is randomized per attempt —
+// occurrence numbers are assigned here, before that shuffle, from the deterministic
+// pool composition, so they stay stable across remounts (needed for resume matching)
 function buildQuizSteps(submodule: SubModule): ActivityStep[] {
   const hasDragDrop = submodule.activitySequence.includes('drag-drop-match')
   const steps: ActivityStep[] = []
+  const occurrenceCounters = new Map<string, number>()
+  function nextOccurrence(type: string, itemId: string): number {
+    const key = `${type}::${itemId}`
+    const n = occurrenceCounters.get(key) ?? 0
+    occurrenceCounters.set(key, n + 1)
+    return n
+  }
 
   const identificationPool = pickItemsCoveringAll(
     submodule.items,
     QUIZ_SIGN_TO_PICTURE_COUNT + QUIZ_SPELLING_COUNT,
   )
-  const signToPictureItems = shuffle(identificationPool.slice(0, QUIZ_SIGN_TO_PICTURE_COUNT))
-  const spellingItems = shuffle(identificationPool.slice(QUIZ_SIGN_TO_PICTURE_COUNT))
+  const signToPictureTuples = identificationPool
+    .slice(0, QUIZ_SIGN_TO_PICTURE_COUNT)
+    .map((item) => ({ item, occurrence: nextOccurrence('sign-to-picture', item.id) }))
+  const spellingTuples = identificationPool
+    .slice(QUIZ_SIGN_TO_PICTURE_COUNT)
+    .map((item) => ({ item, occurrence: nextOccurrence('spelling', item.id) }))
 
-  for (const item of signToPictureItems) {
+  for (const { item, occurrence } of shuffle(signToPictureTuples)) {
     const distractors = shuffle(submodule.items.filter((it) => it.id !== item.id))
-    steps.push({ type: 'sign-to-picture', item, distractors })
+    steps.push({ type: 'sign-to-picture', item, distractors, occurrence })
   }
 
-  for (const item of spellingItems) {
-    steps.push({ type: 'spelling', item })
+  for (const { item, occurrence } of shuffle(spellingTuples)) {
+    steps.push({ type: 'spelling', item, occurrence })
   }
 
   if (hasDragDrop && submodule.items.length >= 3) {
     const dragDropPool = pickItemsCoveringAll(submodule.items, QUIZ_DRAG_DROP_GROUP_COUNT * 3)
     for (let g = 0; g < QUIZ_DRAG_DROP_GROUP_COUNT; g++) {
       const group = dragDropPool.slice(g * 3, g * 3 + 3)
-      steps.push({ type: 'drag-drop-match', item: group[0], groupItems: group })
+      const groupOccurrences = group.map((it) => nextOccurrence('drag-drop-match', it.id))
+      steps.push({ type: 'drag-drop-match', item: group[0], groupItems: group, groupOccurrences })
     }
   }
 
@@ -124,13 +183,17 @@ function buildSteps(submodule: SubModule, mode: 'activity' | 'quiz'): ActivitySt
   return mode === 'quiz' ? buildQuizSteps(submodule) : buildActivitySteps(submodule)
 }
 
-export default function ActivityRunner({ module: mod, submodule, mode, attemptId, backHref }: Props) {
+export default function ActivityRunner({ module: mod, submodule, mode, attemptId, backHref, initialAnswers }: Props) {
   const router = useRouter()
   const exitHref = backHref ?? `/module/${mod.id}/${submodule.id}`
   const steps = useMemo(() => buildSteps(submodule, mode), [submodule, mode])
-  const [stepIndex, setStepIndex] = useState(0)
   // index-aligned with steps — drag-drop holds 3 entries, everything else 1, null = unanswered
-  const [stepAnswers, setStepAnswers] = useState<(QuizAnswer[] | null)[]>(() => steps.map(() => null))
+  const [stepAnswers, setStepAnswers] = useState<(QuizAnswer[] | null)[]>(() =>
+    initialAnswers && initialAnswers.length > 0 ? reconstructStepAnswers(steps, initialAnswers) : steps.map(() => null)
+  )
+  const [stepIndex, setStepIndex] = useState(() =>
+    initialAnswers && initialAnswers.length > 0 ? firstUnansweredIndex(steps, reconstructStepAnswers(steps, initialAnswers)) : 0
+  )
   const [finished, setFinished] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showReview, setShowReview] = useState(false)
@@ -151,6 +214,26 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       next[stepIndex] = results
       return next
     })
+    if (mode === 'quiz' && attemptId) {
+      const occurrences = current.type === 'drag-drop-match'
+        ? current.groupOccurrences ?? []
+        : [current.occurrence ?? 0]
+      void persistQuizAnswers(attemptId, results.map((r, i) => ({ ...r, occurrence: occurrences[i] ?? 0 })))
+    }
+  }
+
+  // Saved as each question is answered, not batched at submit, so an
+  // abandoned quiz can resume instead of losing everything on exit.
+  // Upsert because quiz answers stay editable until submit — resaving
+  // a changed answer must overwrite its row, not duplicate it. occurrence
+  // (see ActivityStep.occurrence) is part of the conflict key because small
+  // submodules can legitimately ask about the same item twice in one quiz.
+  async function persistQuizAnswers(attemptId: string, results: QuizAnswer[]) {
+    const supabase = createClient()
+    await supabase.from('quiz_answers').upsert(
+      results.map((a) => ({ ...a, attempt_id: attemptId, occurrence: a.occurrence ?? 0 })),
+      { onConflict: 'attempt_id,item_id,activity_type,occurrence' },
+    )
   }
 
   function goPrevious() {
@@ -167,6 +250,10 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       setSubmitting(true)
       await submitQuiz()
       setSubmitting(false)
+    } else if (answers.length > 0) {
+      setSubmitting(true)
+      await submitPractice()
+      setSubmitting(false)
     }
     setFinished(true)
   }
@@ -175,9 +262,8 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
     if (!attemptId) return
     const supabase = createClient()
 
-    await supabase.from('quiz_answers').insert(
-      answers.map((a) => ({ ...a, attempt_id: attemptId }))
-    )
+    // Answers are already saved per-question via persistQuizAnswers —
+    // only the attempt's own finalization fields are left to write.
     await supabase.from('quiz_attempts').update({
       submitted_at: new Date().toISOString(),
       score,
@@ -188,6 +274,16 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       action: 'quiz.submit',
       description: `submitted quiz for ${submodule.title} — ${score}/${totalPoints}`,
     })
+  }
+
+  async function submitPractice() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    await supabase.from('practice_answers').insert(
+      answers.map(({ occurrence: _occurrence, ...a }) => ({ ...a, student_id: user.id, submodule_id: submodule.id }))
+    )
   }
 
   if (finished) {

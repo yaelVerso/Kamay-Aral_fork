@@ -40,9 +40,15 @@ export type Database = {
         Relationships: []
       }
       quiz_answers: {
-        Row: { id: string; attempt_id: string; activity_type: string; item_id: string; answer_given: string | null; is_correct: boolean }
-        Insert: { id?: string; attempt_id: string; activity_type: string; item_id: string; answer_given?: string | null; is_correct: boolean }
-        Update: { id?: string; attempt_id?: string; activity_type?: string; item_id?: string; answer_given?: string | null; is_correct?: boolean }
+        Row: { id: string; attempt_id: string; activity_type: string; item_id: string; answer_given: string | null; is_correct: boolean; occurrence: number }
+        Insert: { id?: string; attempt_id: string; activity_type: string; item_id: string; answer_given?: string | null; is_correct: boolean; occurrence?: number }
+        Update: { id?: string; attempt_id?: string; activity_type?: string; item_id?: string; answer_given?: string | null; is_correct?: boolean; occurrence?: number }
+        Relationships: []
+      }
+      practice_answers: {
+        Row: { id: string; student_id: string; submodule_id: string; activity_type: string; item_id: string; answer_given: string | null; is_correct: boolean; answered_at: string }
+        Insert: { id?: string; student_id: string; submodule_id: string; activity_type: string; item_id: string; answer_given?: string | null; is_correct: boolean; answered_at?: string }
+        Update: { id?: string; student_id?: string; submodule_id?: string; activity_type?: string; item_id?: string; answer_given?: string | null; is_correct?: boolean; answered_at?: string }
         Relationships: []
       }
       custom_modules: {
