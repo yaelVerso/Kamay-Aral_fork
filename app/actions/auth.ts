@@ -25,10 +25,13 @@ export async function requestPasswordResetAction(email: string) {
   return { message: 'If an account exists for that email, we\'ve sent a reset link.' }
 }
 
-// resolves an ID number to its email for login — admin has no id_number, always uses email
-export async function resolveLoginEmail(identifier: string): Promise<string> {
+// resolves an ID number to its email for login — admin has no id_number, always uses email.
+// Returns a value rather than throwing — the "no match found" case is an expected
+// outcome here (any garbage input reaches it), not a bug, and Next.js redacts thrown
+// Server Action errors in production builds, which made this unreliable to catch there.
+export async function resolveLoginEmail(identifier: string): Promise<{ email: string } | { error: string }> {
   const trimmed = identifier.trim()
-  if (trimmed.includes('@')) return trimmed
+  if (trimmed.includes('@')) return { email: trimmed }
 
   const admin = createAdminClient()
 
@@ -37,7 +40,7 @@ export async function resolveLoginEmail(identifier: string): Promise<string> {
     .select('email')
     .eq('id_number', trimmed)
     .maybeSingle()
-  if (student?.email) return student.email
+  if (student?.email) return { email: student.email }
 
   const { data: teacher } = await admin
     .from('teachers')
@@ -46,8 +49,8 @@ export async function resolveLoginEmail(identifier: string): Promise<string> {
     .maybeSingle()
   if (teacher) {
     const { data: authUser } = await admin.auth.admin.getUserById(teacher.id)
-    if (authUser.user?.email) return authUser.user.email
+    if (authUser.user?.email) return { email: authUser.user.email }
   }
 
-  throw new Error('Incorrect email/ID or password')
+  return { error: 'Incorrect email/ID or password' }
 }
