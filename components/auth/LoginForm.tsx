@@ -35,10 +35,11 @@ export default function LoginForm({ systemName, logoUrl }: Props) {
     e.preventDefault()
     setLoading(true)
     try {
-      const supabase = createClient({ persist: rememberMe })
-      const email = await resolveLoginEmail(identifier)
+      const resolved = await resolveLoginEmail(identifier)
+      if ('error' in resolved) throw new Error(resolved.error)
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const supabase = createClient({ persist: rememberMe })
+      const { data, error } = await supabase.auth.signInWithPassword({ email: resolved.email, password })
       if (error) {
         if (error.message.toLowerCase().includes('banned')) {
           throw new Error('This account has been deactivated. Contact your admin.')
