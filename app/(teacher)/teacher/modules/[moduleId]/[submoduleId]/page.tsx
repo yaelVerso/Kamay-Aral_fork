@@ -7,6 +7,7 @@ import DeleteCustomSignButton from '@/components/teacher/DeleteCustomSignButton'
 import SignsCsvImportDialog from '@/components/teacher/SignsCsvImportDialog'
 import SignsCsvExportButton from '@/components/teacher/SignsCsvExportButton'
 import SubmoduleExportDeleteControls from '@/components/teacher/SubmoduleExportDeleteControls'
+import QuizSectionAssignment from '@/components/teacher/QuizSectionAssignment'
 import { parseVideoUrl } from '@/lib/videoEmbed'
 
 interface Props { params: Promise<{ moduleId: string; submoduleId: string }> }
@@ -37,6 +38,11 @@ export default async function TeacherSubmoduleDetailPage({ params }: Props) {
     .eq('submodule_id', submoduleId)
     .order('order')
 
+  const [{ data: sections }, { data: quizSettings }] = await Promise.all([
+    supabase.from('sections').select('id, name').eq('teacher_id', user!.id).order('name'),
+    supabase.from('quiz_settings').select('section_id').eq('submodule_id', submoduleId).eq('enabled', true),
+  ])
+
   return (
     <div className="space-y-6">
       <div>
@@ -48,6 +54,13 @@ export default async function TeacherSubmoduleDetailPage({ params }: Props) {
           <SubmoduleExportDeleteControls moduleId={moduleId} submoduleId={submoduleId} submoduleTitle={submodule.title} />
         </div>
       </div>
+
+      <QuizSectionAssignment
+        submoduleId={submoduleId}
+        submoduleTitle={submodule.title}
+        sections={sections ?? []}
+        enabledSectionIds={(quizSettings ?? []).map((q) => q.section_id)}
+      />
 
       <div className="flex flex-wrap items-start gap-2">
         <CustomSignDialog submoduleId={submoduleId} nextOrder={signs?.length ?? 0} />

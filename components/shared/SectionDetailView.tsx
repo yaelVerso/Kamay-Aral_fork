@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
 import { MODULES } from '@/content/registry'
-import QuizToggle from '@/components/teacher/QuizToggle'
 import CreateStudentDialog from '@/components/shared/CreateStudentDialog'
 import AddExistingStudentDialog from '@/components/shared/AddExistingStudentDialog'
 import RemoveFromSectionButton from '@/components/shared/RemoveFromSectionButton'
@@ -81,8 +80,22 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
       <Separator />
 
       <div>
+        <h2 className="font-semibold mb-1">Section Performance</h2>
+        <p className="text-sm text-muted-foreground mb-3">Ranked by quiz average — lowest first highlights who may need attention.</p>
+        <SectionPerformanceList
+          students={students.map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id) }))}
+          attempts={attempts}
+          enabledSubmoduleIds={enabledSubmoduleIds}
+        />
+      </div>
+
+      <Separator />
+
+      <div>
         <h2 className="font-semibold mb-1">Quiz Settings</h2>
-        <p className="text-sm text-muted-foreground mb-3">Enable quizzes per sub-module for this section.</p>
+        <p className="text-sm text-muted-foreground mb-3">
+          Read-only overview for this section — change these in Modules Management, on each sub-module&apos;s page.
+        </p>
         <ModuleAccordion
           sections={[
             ...MODULES.filter((mod) => mod.subModules.length > 0),
@@ -96,30 +109,16 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
                 {mod.subModules.map((sm) => (
                   <div key={sm.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 shadow-sm">
                     <p className="font-medium text-sm">{sm.title}</p>
-                    <QuizToggle
-                      sectionId={sectionId}
-                      sectionName={sectionName}
-                      submoduleId={sm.id}
-                      submoduleTitle={sm.title}
-                      initialEnabled={isEnabled(sm.id)}
-                    />
+                    <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                      isEnabled(sm.id) ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {isEnabled(sm.id) ? 'Enabled' : 'Disabled'}
+                    </span>
                   </div>
                 ))}
               </>
             ),
           }))}
-        />
-      </div>
-
-      <Separator />
-
-      <div>
-        <h2 className="font-semibold mb-1">Section Performance</h2>
-        <p className="text-sm text-muted-foreground mb-3">Ranked by quiz average — lowest first highlights who may need attention.</p>
-        <SectionPerformanceList
-          students={students.map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id) }))}
-          attempts={attempts}
-          enabledSubmoduleIds={enabledSubmoduleIds}
         />
       </div>
     </>
