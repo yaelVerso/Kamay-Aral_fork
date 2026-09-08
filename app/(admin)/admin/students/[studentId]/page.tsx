@@ -43,7 +43,7 @@ export default async function AdminStudentProfilePage({ params }: Props) {
     teacherName: teacherNameById.get(s.teacher_id) ?? 'Unknown',
   }))
 
-  const { learnProgress, attempts, answers } = await getStudentProgress(supabase, studentId)
+  const { learnProgress, attempts, answers, practiceAnswers, masteryBySubmodule } = await getStudentProgress(supabase, studentId)
 
   return (
     <div className="space-y-6">
@@ -93,6 +93,8 @@ export default async function AdminStudentProfilePage({ params }: Props) {
         learnProgress={learnProgress}
         attempts={attempts}
         answers={answers}
+        practiceAnswers={practiceAnswers}
+        masteryBySubmodule={masteryBySubmodule}
       />
     </div>
   )

@@ -128,7 +128,7 @@ function stepPoints(step: ActivityStep): number {
 }
 
 // cycles through pool in order instead of random draw, so every student gets the same
-// items for a submodule — keeps teacher's Item Analysis comparable section-wide
+// items for a submodule — keeps teacher's Sign Breakdown comparable section-wide
 function pickItemsCoveringAll(pool: SignItem[], count: number): SignItem[] {
   if (pool.length === 0) return []
   return Array.from({ length: count }, (_, i) => pool[i % pool.length])

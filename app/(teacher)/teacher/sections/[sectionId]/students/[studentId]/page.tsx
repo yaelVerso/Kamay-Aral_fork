@@ -20,7 +20,7 @@ export default async function StudentDetailPage({ params }: Props) {
   if (!section || section.teacher_id !== user!.id) notFound()
   if (!student) notFound()
 
-  const { learnProgress, attempts, answers } = await getStudentProgress(supabase, studentId)
+  const { learnProgress, attempts, answers, practiceAnswers, masteryBySubmodule } = await getStudentProgress(supabase, studentId)
 
   return (
     <div className="space-y-6">
@@ -43,6 +43,8 @@ export default async function StudentDetailPage({ params }: Props) {
         learnProgress={learnProgress}
         attempts={attempts}
         answers={answers}
+        practiceAnswers={practiceAnswers}
+        masteryBySubmodule={masteryBySubmodule}
       />
     </div>
   )

@@ -19,7 +19,7 @@ import { recordAuditLog } from '@/app/actions/audit'
 
 // Includes module_title/icon/description (unlike ModuleContentCsvExportButton's
 // "Export All") so this file is a standalone copy of the module — droppable
-// straight into the Manage Modules page's Import to recreate it elsewhere,
+// straight into the Modules Management page's Import to recreate it elsewhere,
 // not just content to add back into this same already-existing module.
 const COLUMNS = [
   'module_title', 'module_icon', 'module_description',

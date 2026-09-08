@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-r
 import { Button } from '@/components/ui/button'
 import ResetAttemptButton from '@/components/teacher/ResetAttemptButton'
 import AttemptReview from '@/components/shared/AttemptReview'
+import { getMasteryFeedback } from '@/lib/bkt'
 import type { SubModule } from '@/content/types'
 
 interface AttemptRow {
@@ -25,14 +26,24 @@ interface AnswerRow {
   is_correct: boolean
 }
 
+interface PracticeAnswerRow {
+  item_id: string
+  activity_type: string
+  is_correct: boolean
+}
+
 interface Props {
   submodule: SubModule
   learnedLabel: string
   attempts: AttemptRow[]
   answers: AnswerRow[]
+  /** Already scoped to this sub-module. */
+  practiceAnswers?: PracticeAnswerRow[]
   studentName: string
   sectionId?: string | null
   sectionName?: string | null
+  /** BKT mastery estimate (0–1) for this sub-module, from practice + quiz history combined. Undefined if no attempts yet. */
+  mastery?: number
 }
 
 export default function SubModuleAttemptCard({
@@ -40,9 +51,11 @@ export default function SubModuleAttemptCard({
   learnedLabel,
   attempts,
   answers,
+  practiceAnswers = [],
   studentName,
   sectionId,
   sectionName,
+  mastery,
 }: Props) {
   // attempts is already sorted oldest -> newest; start on the latest.
   const [index, setIndex] = useState(attempts.length - 1)
@@ -52,12 +65,27 @@ export default function SubModuleAttemptCard({
   const percent = selected?.total ? Math.round((selected.score ?? 0) / selected.total * 100) : null
   const itemAnswers = selected ? answers.filter((a) => a.attempt_id === selected.id) : []
 
+  // Sign Breakdown: every quiz attempt + every practice session for this
+  // sub-module, not just the currently-selected attempt — shows where the
+  // student struggles over their whole history, not just in one sitting.
+  const attemptIds = new Set(attempts.map((a) => a.id))
+  const allQuizAnswers = answers.filter((a) => attemptIds.has(a.attempt_id))
+  const combinedAnswers = [...allQuizAnswers, ...practiceAnswers]
+
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium">{submodule.title}</p>
           <p className="text-xs text-muted-foreground">Learn: {learnedLabel} items viewed</p>
+          {mastery !== undefined && (
+            <p className={`text-xs mt-0.5 ${
+              mastery >= 0.8 ? 'text-emerald-600' : mastery >= 0.5 ? 'text-amber-600' : 'text-red-600'
+            }`}>
+              <span className="font-semibold">Mastery: {Math.round(mastery * 100)}%</span>
+              {' — '}{getMasteryFeedback(mastery)}
+            </p>
+          )}
         </div>
 
         {attempts.length > 0 && (
@@ -112,19 +140,19 @@ export default function SubModuleAttemptCard({
         </div>
       )}
 
-      {submitted && itemAnswers.length > 0 && (
+      {combinedAnswers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Item Analysis</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Sign Breakdown</p>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
             {submodule.items.map((item) => {
-              const results = itemAnswers.filter((a) => a.item_id === item.id)
+              const results = combinedAnswers.filter((a) => a.item_id === item.id)
               const correctCount = results.filter((a) => a.is_correct).length
               const ratio = results.length > 0 ? correctCount / results.length : null
               const status = ratio === null ? null : ratio === 1 ? 'correct' : ratio >= 0.5 ? 'partial' : 'wrong'
               return (
                 <div
                   key={item.id}
-                  title={`${item.label}: ${correctCount}/${results.length} correct`}
+                  title={`${item.label}: ${correctCount}/${results.length} correct (practice + quiz)`}
                   className={`flex items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-xs font-bold ${
                     status === 'correct' ? 'bg-emerald-100 text-emerald-700' :
                     status === 'partial' ? 'bg-amber-100 text-amber-700' :
@@ -140,8 +168,11 @@ export default function SubModuleAttemptCard({
               )
             })}
           </div>
-          <AttemptReview answers={itemAnswers} items={submodule.items} />
         </div>
+      )}
+
+      {submitted && itemAnswers.length > 0 && (
+        <AttemptReview answers={itemAnswers} items={submodule.items} />
       )}
     </div>
   )

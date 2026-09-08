@@ -19,9 +19,12 @@ interface Props {
   learnProgress: { module_id: string; submodule_id: string; item_id: string }[]
   attempts: AttemptRow[]
   answers: { attempt_id: string; item_id: string; activity_type: string; answer_given: string | null; is_correct: boolean }[]
+  practiceAnswers?: { submodule_id: string; item_id: string; activity_type: string; is_correct: boolean }[]
+  /** BKT mastery estimate (0–1) per sub-module, from practice + quiz history combined. */
+  masteryBySubmodule?: Record<string, number>
 }
 
-export default function StudentProgressView({ studentName, sectionId, sectionName, learnProgress, attempts, answers }: Props) {
+export default function StudentProgressView({ studentName, sectionId, sectionName, learnProgress, attempts, answers, practiceAnswers = [], masteryBySubmodule = {} }: Props) {
   function learnedCount(moduleId: string, submoduleId: string, totalItems: number) {
     const viewed = learnProgress.filter(
       (p) => p.module_id === moduleId && p.submodule_id === submoduleId
@@ -86,9 +89,11 @@ export default function StudentProgressView({ studentName, sectionId, sectionNam
                 learnedLabel={learnedCount(mod.id, sm.id, sm.items.length)}
                 attempts={getAttemptHistory(sm.id)}
                 answers={answers}
+                practiceAnswers={practiceAnswers.filter((p) => p.submodule_id === sm.id)}
                 studentName={studentName}
                 sectionId={sectionId}
                 sectionName={sectionName}
+                mastery={masteryBySubmodule[sm.id]}
               />
             ))}
           </>

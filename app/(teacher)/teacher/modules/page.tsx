@@ -39,7 +39,7 @@ export default async function TeacherModulesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Manage Modules</h1>
+        <h1 className="text-2xl font-bold">Modules Management</h1>
         <p className="text-sm text-muted-foreground">
           Create your own modules, sub-modules, and signs — separate from the built-in curriculum — and choose which of your sections can see them.
         </p>
