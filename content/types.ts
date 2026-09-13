@@ -20,6 +20,13 @@ export interface SignItem {
    * Matching is case-insensitive and trims whitespace.
    */
   acceptedAnswers: string[]
+  /**
+   * Extra video variations beyond the primary videoPath (e.g. a different
+   * signer or regional variant) — currently only populated for custom
+   * (teacher-authored) content. Learn mode shows a picker when non-empty;
+   * Activity/Quiz always use videoPath regardless.
+   */
+  videoVariations?: { id: string; url: string; label: string | null }[]
 }
 
 export interface SubModule {

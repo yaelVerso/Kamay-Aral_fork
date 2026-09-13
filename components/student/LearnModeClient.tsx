@@ -25,6 +25,9 @@ const SPEEDS = [0.5, 0.75, 1] as const
 
 export default function LearnModeClient({ module: mod, submodule, backHref }: Props) {
   const [selectedItem, setSelectedItem] = useState<SignItem>(submodule.items[0])
+  // null = primary video (selectedItem.videoPath); otherwise a variation's id.
+  // Reset to primary whenever the sign itself changes, in selectItem()/the mount effect below.
+  const [activeVariationId, setActiveVariationId] = useState<string | null>(null)
   const [manualPlay, setManualPlay] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const ytPlayerRef = useRef<YoutubePlayerHandle>(null)
@@ -32,7 +35,10 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
   const [playbackRate, setPlaybackRate] = useState<(typeof SPEEDS)[number]>(1)
   const [isPaused, setIsPaused] = useState(true)
 
-  const parsedVideo = parseVideoUrl(selectedItem.videoPath)
+  const activeVideoUrl = activeVariationId
+    ? selectedItem.videoVariations?.find((v) => v.id === activeVariationId)?.url ?? selectedItem.videoPath
+    : selectedItem.videoPath
+  const parsedVideo = parseVideoUrl(activeVideoUrl)
   // YouTube gets full custom-control parity via its real player API (see
   // YoutubeLearnPlayer). Everything else falls back to a plain <video>.
   const isYoutube = parsedVideo.source === 'youtube'
@@ -41,10 +47,10 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
     setManualPlay(readBooleanSetting(VIDEO_MANUAL_PLAY_STORAGE_KEY, true))
   }, [])
 
-  // video remounts per item, so playbackRate needs reapplying each time
+  // video remounts per item/variation, so playbackRate needs reapplying each time
   useEffect(() => {
     if (videoRef.current) videoRef.current.playbackRate = playbackRate
-  }, [selectedItem, playbackRate])
+  }, [activeVideoUrl, playbackRate])
 
   function togglePause() {
     if (isYoutube) {
@@ -76,6 +82,7 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
 
   function selectItem(item: SignItem) {
     setSelectedItem(item)
+    setActiveVariationId(null)
     markViewed(item)
   }
 
@@ -143,7 +150,7 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
           <div className="relative aspect-video w-full min-h-[220px] rounded-2xl bg-black overflow-hidden">
             {isYoutube && parsedVideo.id ? (
               <YoutubeLearnPlayer
-                key={selectedItem.videoPath}
+                key={activeVideoUrl}
                 ref={ytPlayerRef}
                 videoId={parsedVideo.id}
                 className="h-full w-full"
@@ -154,9 +161,9 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
               />
             ) : (
               <video
-                key={selectedItem.videoPath}
+                key={activeVideoUrl}
                 ref={videoRef}
-                src={selectedItem.videoPath}
+                src={activeVideoUrl}
                 controls
                 loop={looping}
                 autoPlay={!manualPlay}
@@ -166,13 +173,46 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
                 onPlay={() => setIsPaused(false)}
                 onPause={() => setIsPaused(true)}
               >
-                <source src={selectedItem.videoPath} type="video/mp4" />
+                <source src={activeVideoUrl} type="video/mp4" />
               </video>
             )}
           </div>
 
           {/* Video controls — icon-only, supplementing the native scrub bar. */}
           <div className="flex items-center justify-center gap-2">
+            {/* Variation picker — plain numbers (not descriptive labels) so switching
+                doesn't hint anything to the student; scrollable in case there are many,
+                though in practice a sign rarely has more than a couple. */}
+            {selectedItem.videoVariations && selectedItem.videoVariations.length > 0 && (
+              <>
+                <div className="flex max-w-[112px] items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                  <button
+                    onClick={() => setActiveVariationId(null)}
+                    aria-label="Variation 1"
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${activeVariationId === null
+                      ? 'border-[#007B89] bg-[#007B89] text-white'
+                      : 'border-[#DAD2C5] bg-card hover:border-[#0BC2D7]'
+                      }`}
+                  >
+                    1
+                  </button>
+                  {selectedItem.videoVariations.map((v, i) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setActiveVariationId(v.id)}
+                      aria-label={`Variation ${i + 2}`}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${activeVariationId === v.id
+                        ? 'border-[#007B89] bg-[#007B89] text-white'
+                        : 'border-[#DAD2C5] bg-card hover:border-[#0BC2D7]'
+                        }`}
+                    >
+                      {i + 2}
+                    </button>
+                  ))}
+                </div>
+                <div className="mx-1 h-6 w-px bg-[#DAD2C5]" />
+              </>
+            )}
             <button
               onClick={togglePause}
               aria-label={isPaused ? 'Play' : 'Pause'}
