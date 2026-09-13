@@ -532,6 +532,47 @@ create policy "CustomSigns: student reads assigned" on public.custom_signs
 create policy "Admin: full access custom_signs" on public.custom_signs
   for all using (public.is_admin());
 
+-- ============================================================
+-- CUSTOM SIGN VIDEOS
+-- Extra video variations for a sign (e.g. a different signer or
+-- regional variant) — purely additive. custom_signs.video_url stays
+-- the primary/default video exactly as before; this table only holds
+-- alternates, so existing signs need no migration and keep working
+-- unchanged with zero rows here.
+-- ============================================================
+create table public.custom_sign_videos (
+  id uuid primary key default gen_random_uuid(),
+  sign_id uuid not null references public.custom_signs(id) on delete cascade,
+  video_url text not null,
+  label text,
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.custom_sign_videos enable row level security;
+
+create policy "CustomSignVideos: teacher owns" on public.custom_sign_videos
+  for all using (
+    sign_id in (
+      select cs.id from public.custom_signs cs
+      join public.custom_submodules csm on cs.submodule_id = csm.id
+      join public.custom_modules cm on csm.module_id = cm.id
+      where cm.teacher_id = auth.uid()
+    )
+  );
+
+create policy "CustomSignVideos: student reads assigned" on public.custom_sign_videos
+  for select using (
+    sign_id in (
+      select cs.id from public.custom_signs cs
+      join public.custom_submodules csm on cs.submodule_id = csm.id
+      join public.custom_module_sections cms on csm.module_id = cms.module_id
+      where cms.section_id = public.current_student_section_id()
+    )
+  );
+
+create policy "Admin: full access custom_sign_videos" on public.custom_sign_videos
+  for all using (public.is_admin());
+
 create policy "CustomModuleSections: teacher manages own" on public.custom_module_sections
   for all using (
     public.is_teacher_of_custom_module(module_id)
@@ -673,6 +714,7 @@ create index if not exists idx_audit_logs_created_at on public.audit_logs (creat
 create index if not exists idx_custom_modules_teacher_id on public.custom_modules (teacher_id);
 create index if not exists idx_custom_submodules_module_id on public.custom_submodules (module_id);
 create index if not exists idx_custom_signs_submodule_id on public.custom_signs (submodule_id);
+create index if not exists idx_custom_sign_videos_sign_id on public.custom_sign_videos (sign_id);
 create index if not exists idx_custom_module_sections_section_id on public.custom_module_sections (section_id);
 
 -- ============================================================
@@ -695,6 +737,7 @@ grant select, insert, update, delete on public.practice_answers to authenticated
 grant select, insert, update, delete on public.custom_modules to authenticated, service_role;
 grant select, insert, update, delete on public.custom_submodules to authenticated, service_role;
 grant select, insert, update, delete on public.custom_signs to authenticated, service_role;
+grant select, insert, update, delete on public.custom_sign_videos to authenticated, service_role;
 grant select, insert, update, delete on public.custom_module_sections to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;
 grant select on public.app_settings to authenticated, anon;

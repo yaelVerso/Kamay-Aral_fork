@@ -22,7 +22,15 @@ interface CustomSignRow {
   accepted_answers: string[]
 }
 
-function mapSign(row: CustomSignRow): SignItem {
+interface CustomSignVideoRow {
+  id: string
+  sign_id: string
+  video_url: string
+  label: string | null
+}
+
+function mapSign(row: CustomSignRow, variationsBySignId: Map<string, CustomSignVideoRow[]>): SignItem {
+  const variations = variationsBySignId.get(row.id)
   return {
     id: row.id,
     label: row.label,
@@ -30,7 +38,26 @@ function mapSign(row: CustomSignRow): SignItem {
     videoPath: row.video_url,
     imagePath: row.image_url ?? undefined,
     acceptedAnswers: row.accepted_answers,
+    videoVariations: variations?.map((v) => ({ id: v.id, url: v.video_url, label: v.label })),
   }
+}
+
+async function getVariationsBySignId(supabase: SupabaseServerClient, signIds: string[]): Promise<Map<string, CustomSignVideoRow[]>> {
+  const map = new Map<string, CustomSignVideoRow[]>()
+  if (signIds.length === 0) return map
+
+  const { data } = await supabase
+    .from('custom_sign_videos')
+    .select('id, sign_id, video_url, label')
+    .in('sign_id', signIds)
+    .order('order')
+
+  for (const row of data ?? []) {
+    const list = map.get(row.sign_id)
+    if (list) list.push(row)
+    else map.set(row.sign_id, [row])
+  }
+  return map
 }
 
 /**
@@ -63,12 +90,14 @@ export async function getCustomModuleTree(supabase: SupabaseServerClient, module
         .order('order')
     : { data: [] }
 
+  const variationsBySignId = await getVariationsBySignId(supabase, (signs ?? []).map((s) => s.id))
+
   const subModules: SubModule[] = (submodules ?? []).map((sm) => ({
     id: sm.id,
     moduleId: mod.id,
     title: sm.title,
     shortTitle: sm.short_title,
-    items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map(mapSign),
+    items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, variationsBySignId)),
     activitySequence: DEFAULT_ACTIVITY_SEQUENCE,
   }))
 
@@ -144,6 +173,8 @@ export async function getAssignedCustomModules(supabase: SupabaseServerClient): 
         .order('order')
     : { data: [] }
 
+  const variationsBySignId = await getVariationsBySignId(supabase, (signs ?? []).map((s) => s.id))
+
   return modules.map((mod) => ({
     id: mod.id,
     order: mod.order,
@@ -158,7 +189,7 @@ export async function getAssignedCustomModules(supabase: SupabaseServerClient): 
         moduleId: mod.id,
         title: sm.title,
         shortTitle: sm.short_title,
-        items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map(mapSign),
+        items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, variationsBySignId)),
         activitySequence: DEFAULT_ACTIVITY_SEQUENCE,
       })),
   }))

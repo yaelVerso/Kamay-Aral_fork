@@ -69,6 +69,12 @@ export type Database = {
         Update: { id?: string; submodule_id?: string; label?: string; label_fil?: string | null; description?: string | null; video_url?: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
         Relationships: []
       }
+      custom_sign_videos: {
+        Row: { id: string; sign_id: string; video_url: string; label: string | null; order: number; created_at: string }
+        Insert: { id?: string; sign_id: string; video_url: string; label?: string | null; order?: number; created_at?: string }
+        Update: { id?: string; sign_id?: string; video_url?: string; label?: string | null; order?: number; created_at?: string }
+        Relationships: []
+      }
       custom_module_sections: {
         Row: { module_id: string; section_id: string; assigned_at: string }
         Insert: { module_id: string; section_id: string; assigned_at?: string }

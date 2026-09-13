@@ -8,6 +8,7 @@ import SignsCsvImportDialog from '@/components/teacher/SignsCsvImportDialog'
 import SignsCsvExportButton from '@/components/teacher/SignsCsvExportButton'
 import SubmoduleExportDeleteControls from '@/components/teacher/SubmoduleExportDeleteControls'
 import QuizSectionAssignment from '@/components/teacher/QuizSectionAssignment'
+import SignVideoVariationsDialog from '@/components/teacher/SignVideoVariationsDialog'
 import { parseVideoUrl } from '@/lib/videoEmbed'
 
 interface Props { params: Promise<{ moduleId: string; submoduleId: string }> }
@@ -38,10 +39,18 @@ export default async function TeacherSubmoduleDetailPage({ params }: Props) {
     .eq('submodule_id', submoduleId)
     .order('order')
 
-  const [{ data: sections }, { data: quizSettings }] = await Promise.all([
+  const signIds = signs?.map((s) => s.id) ?? []
+  const [{ data: sections }, { data: quizSettings }, { data: variations }] = await Promise.all([
     supabase.from('sections').select('id, name').eq('teacher_id', user!.id).order('name'),
     supabase.from('quiz_settings').select('section_id').eq('submodule_id', submoduleId).eq('enabled', true),
+    signIds.length > 0
+      ? supabase.from('custom_sign_videos').select('id, sign_id, video_url, label, order').in('sign_id', signIds).order('order')
+      : Promise.resolve({ data: [] as { id: string; sign_id: string; video_url: string; label: string | null; order: number }[] }),
   ])
+
+  function variationsFor(signId: string) {
+    return (variations ?? []).filter((v) => v.sign_id === signId)
+  }
 
   return (
     <div className="space-y-6">
@@ -89,6 +98,12 @@ export default async function TeacherSubmoduleDetailPage({ params }: Props) {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                <SignVideoVariationsDialog
+                  signId={sign.id}
+                  signLabel={sign.label}
+                  nextOrder={variationsFor(sign.id).length}
+                  variations={variationsFor(sign.id)}
+                />
                 <CustomSignDialog submoduleId={submoduleId} nextOrder={signs.length} editingSign={sign} />
                 <DeleteCustomSignButton signId={sign.id} signLabel={sign.label} />
               </div>
