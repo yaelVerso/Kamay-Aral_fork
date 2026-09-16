@@ -586,6 +586,72 @@ create policy "Admin: full access custom_module_sections" on public.custom_modul
   for all using (public.is_admin());
 
 -- ============================================================
+-- ADMIN MODULES (admin-authored, universal curriculum)
+-- Separate from custom_modules (teacher-owned, section-scoped) and from
+-- the 10 built-in modules (hardcoded in content/registry.ts, not DB rows
+-- at all yet — a possible future migration target, not handled here).
+-- No section-assignment table like custom_module_sections: admin content
+-- is visible to every student unconditionally, same as the built-in 10
+-- already are. Mirrors custom_modules/custom_submodules/custom_signs'
+-- shape closely on purpose, so the two CSV formats stay interchangeable.
+-- ============================================================
+create table public.admin_modules (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  icon text not null default '📚',
+  color text not null default 'bg-[#BBE587] shadow-[0_4px_0_#82B740] hover:bg-[#A6E05F]',
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.admin_modules enable row level security;
+
+create policy "AdminModules: admin owns" on public.admin_modules
+  for all using (public.is_admin());
+
+create policy "AdminModules: everyone reads" on public.admin_modules
+  for select using (true);
+
+create table public.admin_submodules (
+  id uuid primary key default gen_random_uuid(),
+  module_id uuid not null references public.admin_modules(id) on delete cascade,
+  title text not null,
+  short_title text not null,
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.admin_submodules enable row level security;
+
+create policy "AdminSubmodules: admin owns" on public.admin_submodules
+  for all using (public.is_admin());
+
+create policy "AdminSubmodules: everyone reads" on public.admin_submodules
+  for select using (true);
+
+-- video_url accepts a YouTube link, same as custom_signs — no variations
+-- table for admin content yet (that's planned future work, alongside
+-- teacher-contributed variations with per-teacher priority).
+create table public.admin_signs (
+  id uuid primary key default gen_random_uuid(),
+  submodule_id uuid not null references public.admin_submodules(id) on delete cascade,
+  label text not null,
+  label_fil text,
+  description text,
+  video_url text not null,
+  image_url text,
+  accepted_answers text[] not null default '{}',
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.admin_signs enable row level security;
+
+create policy "AdminSigns: admin owns" on public.admin_signs
+  for all using (public.is_admin());
+
+create policy "AdminSigns: everyone reads" on public.admin_signs
+  for select using (true);
+
+-- ============================================================
 -- AUDIT LOGS
 -- Records account/management actions by admins, teachers, and
 -- students. actor_id is intentionally NOT a foreign key so log
@@ -661,6 +727,20 @@ values ('branding', 'branding', true)
 on conflict (id) do nothing;
 
 -- ============================================================
+-- SIGN MEDIA STORAGE BUCKET
+-- Public bucket for admin-uploaded sign videos/images (see
+-- app/actions/adminContent.ts) — an alternative to pasting a YouTube
+-- link. Same pattern as the branding bucket: upload/replace/delete only
+-- ever goes through the service-role client in a Server Action, so no
+-- client-side storage policy is needed. Objects are keyed by sign id
+-- (sign-media/{signId}/video.mp4), so deleting a sign's media means
+-- listing and removing everything under that prefix.
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('sign-media', 'sign-media', true)
+on conflict (id) do nothing;
+
+-- ============================================================
 -- USER ROLES VIEW
 -- Helper to determine if an auth.user is a teacher or student.
 -- ============================================================
@@ -715,6 +795,8 @@ create index if not exists idx_custom_modules_teacher_id on public.custom_module
 create index if not exists idx_custom_submodules_module_id on public.custom_submodules (module_id);
 create index if not exists idx_custom_signs_submodule_id on public.custom_signs (submodule_id);
 create index if not exists idx_custom_sign_videos_sign_id on public.custom_sign_videos (sign_id);
+create index if not exists idx_admin_submodules_module_id on public.admin_submodules (module_id);
+create index if not exists idx_admin_signs_submodule_id on public.admin_signs (submodule_id);
 create index if not exists idx_custom_module_sections_section_id on public.custom_module_sections (section_id);
 
 -- ============================================================
@@ -738,6 +820,9 @@ grant select, insert, update, delete on public.custom_modules to authenticated, 
 grant select, insert, update, delete on public.custom_submodules to authenticated, service_role;
 grant select, insert, update, delete on public.custom_signs to authenticated, service_role;
 grant select, insert, update, delete on public.custom_sign_videos to authenticated, service_role;
+grant select, insert, update, delete on public.admin_modules to authenticated, service_role;
+grant select, insert, update, delete on public.admin_submodules to authenticated, service_role;
+grant select, insert, update, delete on public.admin_signs to authenticated, service_role;
 grant select, insert, update, delete on public.custom_module_sections to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;
 grant select on public.app_settings to authenticated, anon;

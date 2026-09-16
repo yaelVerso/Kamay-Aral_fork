@@ -19,6 +19,19 @@ export default async function TeacherModulesPage() {
 
   if (modulesError) console.error('custom_modules select error:', modulesError)
 
+  const { data: adminModules } = await supabase
+    .from('admin_modules')
+    .select('id, title, icon, order')
+    .order('order')
+  const adminModuleIds = adminModules?.map((m) => m.id) ?? []
+  const { data: adminSubmoduleCounts } = adminModuleIds.length > 0
+    ? await supabase.from('admin_submodules').select('module_id').in('module_id', adminModuleIds)
+    : { data: [] }
+
+  function adminSubmoduleCount(moduleId: string) {
+    return adminSubmoduleCounts?.filter((s) => s.module_id === moduleId).length ?? 0
+  }
+
   const moduleIds = modules?.map((m) => m.id) ?? []
   const [{ data: submoduleCounts }, { data: assignments }] = await Promise.all([
     moduleIds.length > 0
@@ -87,6 +100,34 @@ export default async function TeacherModulesPage() {
             <BookOpen className="h-8 w-8" />
             <p>No custom modules yet. Create one above.</p>
           </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <h2 className="font-semibold">Admin Modules</h2>
+          <p className="text-sm text-muted-foreground">School-wide content managed by admin — open a sub-module to control its Quiz Settings.</p>
+        </div>
+        {(adminModules ?? []).map((mod) => (
+          <Link
+            key={mod.id}
+            href={`/teacher/modules/admin-content/${mod.id}`}
+            className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-lg">
+                {mod.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold truncate">{mod.title}</p>
+                <p className="text-sm text-muted-foreground">{adminSubmoduleCount(mod.id)} sub-module{adminSubmoduleCount(mod.id) === 1 ? '' : 's'}</p>
+              </div>
+            </div>
+            <span className="text-muted-foreground ml-1">›</span>
+          </Link>
+        ))}
+        {(!adminModules || adminModules.length === 0) && (
+          <p className="text-center text-muted-foreground py-4">No admin modules yet.</p>
         )}
       </div>
 
