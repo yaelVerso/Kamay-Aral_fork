@@ -1,18 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { MODULES } from '@/content/registry'
-import { getAllAdminModulesWithContent } from '@/lib/queries/adminContent'
+import { getAllAdminModulesWithContent, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import Link from 'next/link'
 import ProgressRing from '@/components/student/ProgressRing'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const teacherId = await getTeacherIdForStudent(supabase, user!.id)
 
   // Count viewed items per module for progress rings
   const [{ data: student }, { data: learnRows }, adminModules] = await Promise.all([
     supabase.from('students').select('first_name, full_name').eq('id', user!.id).single(),
     supabase.from('learn_progress').select('module_id, item_id').eq('student_id', user!.id),
-    getAllAdminModulesWithContent(supabase),
+    getAllAdminModulesWithContent(supabase, teacherId),
   ])
 
   function moduleProgress(moduleId: string, totalItems: number): number {
