@@ -1,13 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { MODULES } from '@/content/registry'
+import { getAssignedCustomModules } from '@/lib/queries/customContent'
+import { getAllAdminModulesWithContent, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import ProgressRing from '@/components/student/ProgressRing'
 import ModuleAccordion from '@/components/shared/ModuleAccordion'
 
 export default async function ProgressPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const teacherId = await getTeacherIdForStudent(supabase, user!.id)
 
-  const [{ data: learnRows }, { data: attempts }] = await Promise.all([
+  const [{ data: learnRows }, { data: attempts }, customModules, adminModules] = await Promise.all([
     supabase.from('learn_progress').select('module_id, item_id').eq('student_id', user!.id),
     supabase
       .from('quiz_attempts')
@@ -15,6 +18,8 @@ export default async function ProgressPage() {
       .eq('student_id', user!.id)
       .eq('is_active', true)
       .not('submitted_at', 'is', null),
+    getAssignedCustomModules(supabase),
+    getAllAdminModulesWithContent(supabase, teacherId),
   ])
 
   function moduleProgress(moduleId: string, totalItems: number): number {
@@ -27,6 +32,43 @@ export default async function ProgressPage() {
     return attempts?.find((a) => a.submodule_id === submoduleId)
   }
 
+  function buildSection(mod: { id: string; title: string; icon: string; subModules: { id: string; title: string; items: unknown[] }[] }) {
+    const totalItems = mod.subModules.reduce((sum, sm) => sum + sm.items.length, 0)
+    const percent = moduleProgress(mod.id, totalItems)
+
+    return {
+      id: mod.id,
+      title: mod.title,
+      icon: mod.icon,
+      badge: <ProgressRing percent={percent} size={36} strokeWidth={4} />,
+      content: (
+        <>
+          {mod.subModules.map((sm) => {
+            const attempt = attemptFor(sm.id)
+            return (
+              <div key={sm.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 shadow-sm">
+                <p className="font-medium text-sm">{sm.title}</p>
+                {attempt ? (
+                  <span className="text-sm font-bold text-[var(--brand-secondary)]">
+                    {attempt.score}/{attempt.total}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">No quiz taken yet</span>
+                )}
+              </div>
+            )
+          })}
+        </>
+      ),
+    }
+  }
+
+  const sections = [
+    ...MODULES.filter((mod) => mod.subModules.length > 0).map(buildSection),
+    ...customModules.filter((mod) => mod.subModules.length > 0).map(buildSection),
+    ...adminModules.filter((mod) => mod.subModules.length > 0).map(buildSection),
+  ]
+
   return (
     <div className="px-4 pt-8 pb-4 space-y-6">
       <div>
@@ -34,38 +76,7 @@ export default async function ProgressPage() {
         <p className="text-sm text-muted-foreground">Your progress across all modules.</p>
       </div>
 
-      <ModuleAccordion
-        sections={MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => {
-          const totalItems = mod.subModules.reduce((sum, sm) => sum + sm.items.length, 0)
-          const percent = moduleProgress(mod.id, totalItems)
-
-          return {
-            id: mod.id,
-            title: mod.title,
-            icon: mod.icon,
-            badge: <ProgressRing percent={percent} size={36} strokeWidth={4} />,
-            content: (
-              <>
-                {mod.subModules.map((sm) => {
-                  const attempt = attemptFor(sm.id)
-                  return (
-                    <div key={sm.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 shadow-sm">
-                      <p className="font-medium text-sm">{sm.title}</p>
-                      {attempt ? (
-                        <span className="text-sm font-bold text-[var(--brand-secondary)]">
-                          {attempt.score}/{attempt.total}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No quiz taken yet</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </>
-            ),
-          }
-        })}
-      />
+      <ModuleAccordion sections={sections} />
     </div>
   )
 }
