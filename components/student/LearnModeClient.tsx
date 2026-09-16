@@ -164,7 +164,10 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
                 key={activeVideoUrl}
                 ref={videoRef}
                 src={activeVideoUrl}
-                controls
+                // No native controls (so no native scrub bar either) — play/
+                // pause/loop/speed are already fully covered by the custom
+                // control row below via videoRef, so native controls would
+                // just be a redundant, duplicate set of buttons.
                 loop={looping}
                 autoPlay={!manualPlay}
                 playsInline
@@ -178,7 +181,7 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
             )}
           </div>
 
-          {/* Video controls — icon-only, supplementing the native scrub bar. */}
+          {/* Video controls — icon-only; no native scrub bar, this row is the only playback UI. */}
           <div className="flex items-center justify-center gap-2">
             {/* Variation picker — plain numbers (not descriptive labels) so switching
                 doesn't hint anything to the student; scrollable in case there are many,

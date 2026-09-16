@@ -114,7 +114,11 @@ const YoutubeLearnPlayer = forwardRef<YoutubePlayerHandle, Props>(function Youtu
         videoId,
         playerVars: {
           autoplay: autoplay ? 1 : 0,
-          controls: 1,
+          // Native controls (including YouTube's own scrub bar) are off —
+          // play/pause/loop/speed are already fully driven by the custom
+          // control row below via this same player API, so native controls
+          // would just be a redundant, duplicate set of buttons.
+          controls: 0,
           playsinline: 1,
           modestbranding: 1,
           rel: 0,

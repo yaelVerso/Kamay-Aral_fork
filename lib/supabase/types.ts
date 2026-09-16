@@ -69,6 +69,24 @@ export type Database = {
         Update: { id?: string; submodule_id?: string; label?: string; label_fil?: string | null; description?: string | null; video_url?: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
         Relationships: []
       }
+      admin_modules: {
+        Row: { id: string; title: string; description: string | null; icon: string; color: string; order: number; created_at: string }
+        Insert: { id?: string; title: string; description?: string | null; icon?: string; color?: string; order?: number; created_at?: string }
+        Update: { id?: string; title?: string; description?: string | null; icon?: string; color?: string; order?: number; created_at?: string }
+        Relationships: []
+      }
+      admin_submodules: {
+        Row: { id: string; module_id: string; title: string; short_title: string; order: number; created_at: string }
+        Insert: { id?: string; module_id: string; title: string; short_title: string; order?: number; created_at?: string }
+        Update: { id?: string; module_id?: string; title?: string; short_title?: string; order?: number; created_at?: string }
+        Relationships: []
+      }
+      admin_signs: {
+        Row: { id: string; submodule_id: string; label: string; label_fil: string | null; description: string | null; video_url: string; image_url: string | null; accepted_answers: string[]; order: number; created_at: string }
+        Insert: { id?: string; submodule_id: string; label: string; label_fil?: string | null; description?: string | null; video_url: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
+        Update: { id?: string; submodule_id?: string; label?: string; label_fil?: string | null; description?: string | null; video_url?: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
+        Relationships: []
+      }
       custom_sign_videos: {
         Row: { id: string; sign_id: string; video_url: string; label: string | null; order: number; created_at: string }
         Insert: { id?: string; sign_id: string; video_url: string; label?: string | null; order?: number; created_at?: string }

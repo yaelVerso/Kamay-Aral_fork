@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { MODULES } from '@/content/registry'
+import { getAllAdminModulesWithContent } from '@/lib/queries/adminContent'
 import Link from 'next/link'
 import ProgressRing from '@/components/student/ProgressRing'
 
@@ -8,9 +9,10 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Count viewed items per module for progress rings
-  const [{ data: student }, { data: learnRows }] = await Promise.all([
+  const [{ data: student }, { data: learnRows }, adminModules] = await Promise.all([
     supabase.from('students').select('first_name, full_name').eq('id', user!.id).single(),
     supabase.from('learn_progress').select('module_id, item_id').eq('student_id', user!.id),
+    getAllAdminModulesWithContent(supabase),
   ])
 
   function moduleProgress(moduleId: string, totalItems: number): number {
@@ -40,6 +42,31 @@ export default async function DashboardPage() {
             <Link
               key={mod.id}
               href={hasContent ? `/module/${mod.id}` : '#'}
+              className={`relative flex flex-col gap-3 mt-1 rounded-2xl ${mod.color} p-4 transition-all active:scale-95 ${!hasContent ? 'opacity-50 pointer-events-none' : ''
+                }`}
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-3xl lg:text-5xl">{mod.icon}</span>
+                <ProgressRing percent={percent} size={52} strokeWidth={5} />
+              </div>
+              <div>
+                <p className="lg:mt-10 font-extrabold text-white text-xl">{mod.title}</p>
+                <p className="text-xs text-[#fafafabd] mt-0.5">
+                  {hasContent ? `${mod.subModules.length} sections` : 'Coming soon'}
+                </p>
+              </div>
+            </Link>
+          )
+        })}
+        {adminModules.map((mod) => {
+          const totalItems = mod.subModules.reduce((sum, sm) => sum + sm.items.length, 0)
+          const percent = moduleProgress(mod.id, totalItems)
+          const hasContent = mod.subModules.length > 0
+
+          return (
+            <Link
+              key={mod.id}
+              href={hasContent ? `/main/${mod.id}` : '#'}
               className={`relative flex flex-col gap-3 mt-1 rounded-2xl ${mod.color} p-4 transition-all active:scale-95 ${!hasContent ? 'opacity-50 pointer-events-none' : ''
                 }`}
             >
