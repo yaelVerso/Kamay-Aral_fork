@@ -205,7 +205,7 @@ export default function DragDropMatch({ items, mode, initialMatches, onAnswer }:
               : 'bg-[#0BC2D7] shadow-[0_4px_0_#149AA9] hover:bg-[#00B7CB]',
           )}
         >
-          {mode === 'quiz' ? (saved ? 'Saved ✓' : 'Save Answer') : 'Check answers'}
+          {mode === 'quiz' ? (saved ? 'Confirmed ✓' : 'Confirm Answer') : 'Check answers'}
         </Button>
       )}
     </div>

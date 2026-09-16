@@ -114,7 +114,7 @@ export default function Spelling({ item, mode, initialAnswer, onAnswer }: Props)
                 : 'bg-[#0BC2D7] shadow-[0_4px_0_#149AA9] hover:bg-[#00B7CB]',
             )}
           >
-            {mode === 'quiz' ? (saved ? 'Saved ✓' : 'Save Answer') : 'Check'}
+            {mode === 'quiz' ? (saved ? 'Confirmed ✓' : 'Confirm Answer') : 'Check'}
           </Button>
         )}
       </form>
