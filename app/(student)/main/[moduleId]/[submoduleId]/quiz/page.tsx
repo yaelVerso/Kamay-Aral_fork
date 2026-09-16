@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getAdminModuleTree } from '@/lib/queries/adminContent'
+import { getAdminModuleTree, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import QuizGate from '@/components/quiz/QuizGate'
 
 interface Props {
@@ -10,12 +10,14 @@ interface Props {
 export default async function MainQuizPage({ params }: Props) {
   const { moduleId, submoduleId } = await params
   const supabase = await createClient()
-  const mod = await getAdminModuleTree(supabase, moduleId)
-  const submodule = mod?.subModules.find((sm) => sm.id === submoduleId)
-  if (!mod || !submodule) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const teacherId = await getTeacherIdForStudent(supabase, user.id)
+  const mod = await getAdminModuleTree(supabase, moduleId, teacherId)
+  const submodule = mod?.subModules.find((sm) => sm.id === submoduleId)
+  if (!mod || !submodule) notFound()
 
   const { data: student } = await supabase
     .from('students')

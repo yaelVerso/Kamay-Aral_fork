@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getAdminModuleTree } from '@/lib/queries/adminContent'
+import { getAdminModuleTree, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import LearnModeClient from '@/components/student/LearnModeClient'
 
 interface Props {
@@ -10,7 +10,9 @@ interface Props {
 export default async function MainLearnPage({ params }: Props) {
   const { moduleId, submoduleId } = await params
   const supabase = await createClient()
-  const mod = await getAdminModuleTree(supabase, moduleId)
+  const { data: { user } } = await supabase.auth.getUser()
+  const teacherId = await getTeacherIdForStudent(supabase, user!.id)
+  const mod = await getAdminModuleTree(supabase, moduleId, teacherId)
   const submodule = mod?.subModules.find((sm) => sm.id === submoduleId)
   if (!mod || !submodule) notFound()
 

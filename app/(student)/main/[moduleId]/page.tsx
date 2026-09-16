@@ -1,16 +1,17 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getAdminModuleTree } from '@/lib/queries/adminContent'
+import { getAdminModuleTree, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import Link from 'next/link'
 import { ChevronLeft, Lock, CheckCircle2 } from 'lucide-react'
 
 export default async function MainModulePage({ params }: { params: Promise<{ moduleId: string }> }) {
   const { moduleId } = await params
   const supabase = await createClient()
-  const mod = await getAdminModuleTree(supabase, moduleId)
-  if (!mod) notFound()
-
   const { data: { user } } = await supabase.auth.getUser()
+
+  const teacherId = await getTeacherIdForStudent(supabase, user!.id)
+  const mod = await getAdminModuleTree(supabase, moduleId, teacherId)
+  if (!mod) notFound()
 
   const [{ data: attempts }, { data: student }] = await Promise.all([
     supabase
