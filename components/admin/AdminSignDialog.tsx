@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -15,11 +15,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Plus, Pencil, Upload } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
 import { recordAuditLog } from '@/app/actions/audit'
-import { uploadAdminSignVideoAction, uploadAdminSignImageAction, pruneAdminSignMediaAction } from '@/app/actions/adminContent'
 import { parseVideoUrl } from '@/lib/videoEmbed'
-import { cn } from '@/lib/utils'
 
 interface EditingSign {
   id: string
@@ -37,28 +35,6 @@ interface Props {
   editingSign?: EditingSign
 }
 
-type MediaMode = 'link' | 'upload'
-
-function ModeToggle({ mode, onChange }: { mode: MediaMode; onChange: (m: MediaMode) => void }) {
-  return (
-    <div className="flex gap-1 rounded-lg border p-0.5 w-fit">
-      {(['link', 'upload'] as const).map((m) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => onChange(m)}
-          className={cn(
-            'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-            mode === m ? 'bg-[var(--brand-secondary)] text-white' : 'text-muted-foreground hover:bg-muted',
-          )}
-        >
-          {m === 'link' ? 'Paste link' : 'Upload file'}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }: Props) {
   const isEdit = !!editingSign
   const [open, setOpen] = useState(false)
@@ -68,19 +44,10 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
   const [videoUrl, setVideoUrl] = useState(editingSign?.video_url ?? '')
   const [imageUrl, setImageUrl] = useState(editingSign?.image_url ?? '')
   const [acceptedAnswers, setAcceptedAnswers] = useState(editingSign?.accepted_answers?.join(', ') ?? '')
-  const [videoMode, setVideoMode] = useState<MediaMode>('link')
-  const [imageMode, setImageMode] = useState<MediaMode>('link')
-  const [uploadingVideo, setUploadingVideo] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  // A new sign's id doesn't exist until insert, but uploads need somewhere
-  // to live before that — generated once up front and used consistently for
-  // both the upload path and the eventual insert's explicit id.
-  const pendingSignIdRef = useRef(editingSign?.id ?? crypto.randomUUID())
-
-  const parsedVideo = videoMode === 'link' && videoUrl.trim() ? parseVideoUrl(videoUrl) : null
+  const parsedVideo = videoUrl.trim() ? parseVideoUrl(videoUrl) : null
 
   function resetForm() {
     setLabel(editingSign?.label ?? '')
@@ -89,51 +56,12 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
     setVideoUrl(editingSign?.video_url ?? '')
     setImageUrl(editingSign?.image_url ?? '')
     setAcceptedAnswers(editingSign?.accepted_answers?.join(', ') ?? '')
-    // An existing sign's video/image might have come from an upload rather
-    // than a pasted link — default to whichever mode matches what's already
-    // there, so re-saving without changes doesn't trip the "must be a
-    // YouTube link" validation for a sign that was never a link to begin with.
-    setVideoMode(editingSign && !parseVideoUrl(editingSign.video_url).embedUrl ? 'upload' : 'link')
-    setImageMode('link')
-    if (!editingSign) pendingSignIdRef.current = crypto.randomUUID()
-  }
-
-  async function handleVideoFile(file: File) {
-    setUploadingVideo(true)
-    try {
-      const formData = new FormData()
-      formData.set('signId', pendingSignIdRef.current)
-      formData.set('file', file)
-      const url = await uploadAdminSignVideoAction(formData)
-      setVideoUrl(url)
-      toast.success('Video uploaded')
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload video')
-    } finally {
-      setUploadingVideo(false)
-    }
-  }
-
-  async function handleImageFile(file: File) {
-    setUploadingImage(true)
-    try {
-      const formData = new FormData()
-      formData.set('signId', pendingSignIdRef.current)
-      formData.set('file', file)
-      const url = await uploadAdminSignImageAction(formData)
-      setImageUrl(url)
-      toast.success('Image uploaded')
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload image')
-    } finally {
-      setUploadingImage(false)
-    }
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!label.trim() || !videoUrl.trim()) return
-    if (videoMode === 'link' && !parseVideoUrl(videoUrl).embedUrl) {
+    if (!parseVideoUrl(videoUrl).embedUrl) {
       toast.error('Video link must be a YouTube link')
       return
     }
@@ -156,22 +84,11 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
         await recordAuditLog({ action: 'admin_sign.update', description: `updated sign "${payload.label}"` })
         toast.success('Sign updated')
       } else {
-        const { error } = await supabase.from('admin_signs').insert({
-          ...payload,
-          id: pendingSignIdRef.current,
-          submodule_id: submoduleId,
-          order: nextOrder,
-        })
+        const { error } = await supabase.from('admin_signs').insert({ ...payload, submodule_id: submoduleId, order: nextOrder })
         if (error) throw new Error(error.message)
         await recordAuditLog({ action: 'admin_sign.create', description: `added sign "${payload.label}"` })
         toast.success(`Sign "${payload.label}" added`)
       }
-
-      // best-effort — cleans up anything left over from a since-abandoned
-      // format/link switch (e.g. uploaded .mp4, then replaced with .webm,
-      // or uploaded a file then switched back to a pasted YouTube link)
-      const signId = isEdit ? editingSign.id : pendingSignIdRef.current
-      await pruneAdminSignMediaAction(signId, [payload.video_url, payload.image_url]).catch(() => {})
 
       if (!isEdit) {
         setLabel('')
@@ -180,7 +97,6 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
         setVideoUrl('')
         setImageUrl('')
         setAcceptedAnswers('')
-        pendingSignIdRef.current = crypto.randomUUID()
       }
       setOpen(false)
       router.refresh()
@@ -207,7 +123,7 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Sign' : 'Add Sign'}</DialogTitle>
           <DialogDescription>
-            Paste a YouTube link or upload a video file. This content is visible to every student, school-wide.
+            Paste a YouTube link for the sign&apos;s video. This content is visible to every student, school-wide.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSave} className="space-y-3">
@@ -232,64 +148,21 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
             />
           </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Video</Label>
-              <ModeToggle mode={videoMode} onChange={setVideoMode} />
-            </div>
-            {videoMode === 'link' ? (
-              <>
-                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." required />
-                {videoUrl.trim() && (
-                  <p className={`text-xs ${parsedVideo?.embedUrl ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {parsedVideo?.embedUrl ? 'Recognized as YouTube link' : '⚠ Not a recognized YouTube link'}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm"
-                  disabled={uploadingVideo}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoFile(f) }}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
-                />
-                <p className="text-xs text-muted-foreground">mp4 or webm, up to 50MB.</p>
-                {uploadingVideo && <p className="text-xs text-muted-foreground">Uploading…</p>}
-                {!uploadingVideo && videoUrl.trim() && videoMode === 'upload' && (
-                  <p className="text-xs text-emerald-600 flex items-center gap-1"><Upload className="h-3 w-3" /> Video uploaded</p>
-                )}
-              </>
+          <div className="space-y-1">
+            <Label htmlFor="admin-sign-video">Video link (YouTube)</Label>
+            <Input id="admin-sign-video" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." required />
+            {videoUrl.trim() && (
+              <p className={`text-xs ${parsedVideo?.embedUrl ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {parsedVideo?.embedUrl
+                  ? 'Recognized as YouTube link'
+                  : '⚠ Not a recognized YouTube link'}
+              </p>
             )}
           </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Image (optional)</Label>
-              <ModeToggle mode={imageMode} onChange={setImageMode} />
-            </div>
-            {imageMode === 'link' ? (
-              <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." />
-            ) : (
-              <>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={uploadingImage}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f) }}
-                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
-                />
-                <p className="text-xs text-muted-foreground">jpg, png, or webp, up to 5MB.</p>
-                {uploadingImage && <p className="text-xs text-muted-foreground">Uploading…</p>}
-                {!uploadingImage && imageUrl.trim() && imageMode === 'upload' && (
-                  <p className="text-xs text-emerald-600 flex items-center gap-1"><Upload className="h-3 w-3" /> Image uploaded</p>
-                )}
-              </>
-            )}
+          <div className="space-y-1">
+            <Label htmlFor="admin-sign-image">Image link (optional)</Label>
+            <Input id="admin-sign-image" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." />
           </div>
-
           <div className="space-y-1">
             <Label htmlFor="admin-sign-answers">Accepted spelling answers</Label>
             <Input
@@ -301,11 +174,7 @@ export default function AdminSignDialog({ submoduleId, nextOrder, editingSign }:
             <p className="text-xs text-muted-foreground">Used for the Spelling activity. Leave blank to just use the sign name.</p>
           </div>
           <DialogFooter>
-            <Button
-              type="submit"
-              disabled={loading || uploadingVideo || uploadingImage || !label.trim() || !videoUrl.trim()}
-              className="bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]"
-            >
+            <Button type="submit" disabled={loading || !label.trim() || !videoUrl.trim()} className="bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-hover)]">
               {loading ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Sign'}
             </Button>
           </DialogFooter>

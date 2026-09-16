@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { recordAuditLog } from '@/app/actions/audit'
-import { deleteAdminSignMediaAction } from '@/app/actions/adminContent'
 
 interface Props {
   signId: string
@@ -26,8 +25,6 @@ export default function DeleteAdminSignButton({ signId, signLabel }: Props) {
       const { error } = await supabase.from('admin_signs').delete().eq('id', signId)
       if (error) throw new Error(error.message)
       await recordAuditLog({ action: 'admin_sign.delete', description: `deleted sign "${signLabel}"` })
-      // best-effort — an uploaded file orphaned in storage isn't worth failing the delete over
-      await deleteAdminSignMediaAction(signId).catch(() => {})
       toast.success('Sign deleted')
       router.refresh()
     } catch (err: unknown) {
