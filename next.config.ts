@@ -9,14 +9,6 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  // Server Actions default to a 1MB request body — uploadAdminSignVideoAction
-  // allows files up to 50MB, so this needs raising to match (with headroom
-  // for multipart/form-data's own boundary/header overhead on top of the file).
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "55mb",
-    },
-  },
   images: {
     remotePatterns: supabaseHostname
       ? [

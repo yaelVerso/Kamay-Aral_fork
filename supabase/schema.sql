@@ -759,20 +759,6 @@ values ('branding', 'branding', true)
 on conflict (id) do nothing;
 
 -- ============================================================
--- SIGN MEDIA STORAGE BUCKET
--- Public bucket for admin-uploaded sign videos/images (see
--- app/actions/adminContent.ts) — an alternative to pasting a YouTube
--- link. Same pattern as the branding bucket: upload/replace/delete only
--- ever goes through the service-role client in a Server Action, so no
--- client-side storage policy is needed. Objects are keyed by sign id
--- (sign-media/{signId}/video.mp4), so deleting a sign's media means
--- listing and removing everything under that prefix.
--- ============================================================
-insert into storage.buckets (id, name, public)
-values ('sign-media', 'sign-media', true)
-on conflict (id) do nothing;
-
--- ============================================================
 -- USER ROLES VIEW
 -- Helper to determine if an auth.user is a teacher or student.
 -- ============================================================
