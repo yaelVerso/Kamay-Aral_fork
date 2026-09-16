@@ -119,7 +119,7 @@ export default function SignToPicture({ item, distractors, mode, initialAnswer, 
               : 'bg-[#0BC2D7] shadow-[0_4px_0_#149AA9] hover:bg-[#00B7CB]',
           )}
         >
-          {mode === 'quiz' ? (saved ? 'Saved ✓' : 'Save Answer') : 'Submit Answer'}
+          {mode === 'quiz' ? (saved ? 'Confirmed ✓' : 'Confirm Answer') : 'Submit Answer'}
         </Button>
       )}
     </div>

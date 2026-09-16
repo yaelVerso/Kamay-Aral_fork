@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { Module, SubModule, SignItem, ActivityType } from '@/content/types'
 import { useRouter } from 'next/navigation'
 import { X, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -12,6 +12,8 @@ import { createClient } from '@/lib/supabase/client'
 import { recordAuditLog } from '@/app/actions/audit'
 import { cn } from '@/lib/utils'
 import { shuffle } from '@/lib/shuffle'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface ActivityStep {
   type: ActivityType
@@ -25,9 +27,8 @@ interface ActivityStep {
    * Which occurrence (0, 1, 2…) of this (type, item) pair this step is within
    * the quiz — small submodules cycle their item pool to fill the fixed quiz
    * shape, so the same item can legitimately appear twice as the same question
-   * type in one attempt. Assigned at build time from the deterministic
-   * pre-shuffle composition, so it stays stable across remounts even though
-   * display order/distractors are re-randomized every time. Quiz-only.
+   * type in one attempt. Without this, two such rows would collide on
+   * (attempt_id, item_id, activity_type) when submitted together. Quiz-only.
    */
   occurrence?: number
   /** For drag-drop: occurrence per item in groupItems, same index alignment. */
@@ -50,46 +51,22 @@ interface Props {
   attemptId?: string
   /** Defaults to the built-in module route; pass `/class/{id}/{submoduleId}` for a custom module. */
   backHref?: string
-  /** Answers already saved for this attempt (quiz only) — resumes at the first unanswered step instead of the start. */
-  initialAnswers?: QuizAnswer[]
-}
-
-// Matches each already-saved answer back to the step that produced it, by the
-// exact (activity_type, item_id, occurrence) key — quiz step order/distractors
-// are re-randomized on every mount, but occurrence is assigned from the
-// deterministic pre-shuffle composition, so this lookup stays exact even for
-// submodules small enough that the same item appears twice as one question type.
-function reconstructStepAnswers(steps: ActivityStep[], saved: QuizAnswer[]): (QuizAnswer[] | null)[] {
-  const byKey = new Map<string, QuizAnswer>()
-  for (const a of saved) byKey.set(`${a.activity_type}::${a.item_id}::${a.occurrence ?? 0}`, a)
-
-  return steps.map((step) => {
-    if (step.type === 'lesson-card') return null
-    const group = step.type === 'drag-drop-match' ? step.groupItems ?? [step.item] : [step.item]
-    const occurrences = step.type === 'drag-drop-match' ? step.groupOccurrences ?? [] : [step.occurrence ?? 0]
-    const results: QuizAnswer[] = []
-    for (let i = 0; i < group.length; i++) {
-      const found = byKey.get(`${step.type}::${group[i].id}::${occurrences[i] ?? 0}`)
-      if (!found) return null
-      results.push(found)
-    }
-    return results
-  })
-}
-
-function firstUnansweredIndex(steps: ActivityStep[], stepAnswers: (QuizAnswer[] | null)[]): number {
-  for (let i = 0; i < steps.length; i++) {
-    if (steps[i].type !== 'lesson-card' && stepAnswers[i] === null) return i
-  }
-  return Math.max(0, steps.length - 1)
 }
 
 // interleaved per item: Lesson Card A → Sign to Picture A → Spelling A → Lesson Card B → ...
-// item order is shuffled per session (avoids always drilling early items first,
-// which would bias practice-answer data); each item's own triplet stays intact.
-// drag-drop-match is quiz-only, skipped here
-function buildActivitySteps(submodule: SubModule): ActivityStep[] {
-  const items = shuffle(submodule.items)
+// item order is randomized per session (avoids always drilling early items
+// first, which would bias practice-answer data) — but the shuffle itself
+// happens client-side only, after mount (see the effect in the component
+// below), not in here. This function takes the already-decided item order
+// as a plain argument instead of calling shuffle() itself, so the very
+// first render (server + initial client hydration pass) can safely use the
+// same deterministic (unshuffled) order on both sides — computing a random
+// order directly during render would differ between the server's pass and
+// the client's hydration pass (Math.random() isn't reproducible across
+// them), which is a hydration mismatch: React would detect server/client
+// HTML disagreeing and force a full client-side re-render to recover.
+// drag-drop-match is quiz-only, skipped here.
+function buildActivitySteps(submodule: SubModule, items: SignItem[]): ActivityStep[] {
   const perItemTypes = submodule.activitySequence.filter((t) => t !== 'drag-drop-match')
 
   const steps: ActivityStep[] = []
@@ -137,7 +114,7 @@ function pickItemsCoveringAll(pool: SignItem[], count: number): SignItem[] {
 // fixed quiz shape: 5 sign-to-picture, 4 spelling, 2 drag-drop-match groups
 // only presentation (question order, distractors, layout) is randomized per attempt —
 // occurrence numbers are assigned here, before that shuffle, from the deterministic
-// pool composition, so they stay stable across remounts (needed for resume matching)
+// pool composition, distinguishing legitimate repeat items (see ActivityStep.occurrence)
 function buildQuizSteps(submodule: SubModule): ActivityStep[] {
   const hasDragDrop = submodule.activitySequence.includes('drag-drop-match')
   const steps: ActivityStep[] = []
@@ -181,24 +158,36 @@ function buildQuizSteps(submodule: SubModule): ActivityStep[] {
   return steps
 }
 
+// Unshuffled — safe to compute identically on the server and on the client's
+// initial hydration render. buildQuizSteps is unaffected by the hydration
+// concern above (quiz only ever mounts after a client-side button press in
+// QuizGate, never during an SSR pass), so it's untouched here.
 function buildSteps(submodule: SubModule, mode: 'activity' | 'quiz'): ActivityStep[] {
-  return mode === 'quiz' ? buildQuizSteps(submodule) : buildActivitySteps(submodule)
+  return mode === 'quiz' ? buildQuizSteps(submodule) : buildActivitySteps(submodule, submodule.items)
 }
 
-export default function ActivityRunner({ module: mod, submodule, mode, attemptId, backHref, initialAnswers }: Props) {
+export default function ActivityRunner({ module: mod, submodule, mode, attemptId, backHref }: Props) {
   const router = useRouter()
   const exitHref = backHref ?? `/module/${mod.id}/${submodule.id}`
-  const steps = useMemo(() => buildSteps(submodule, mode), [submodule, mode])
+  const [steps, setSteps] = useState(() => buildSteps(submodule, mode))
+  // Practice's item order is randomized once per session, but only here,
+  // client-side, after mount — see buildActivitySteps for why. Runs before
+  // the user could possibly have answered anything yet, so swapping the
+  // step order out from under stepAnswers/stepIndex (both still at their
+  // just-mounted empty/zero state) is safe.
+  useEffect(() => {
+    if (mode === 'activity') {
+      setSteps(buildActivitySteps(submodule, shuffle(submodule.items)))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submodule, mode])
   // index-aligned with steps — drag-drop holds 3 entries, everything else 1, null = unanswered
-  const [stepAnswers, setStepAnswers] = useState<(QuizAnswer[] | null)[]>(() =>
-    initialAnswers && initialAnswers.length > 0 ? reconstructStepAnswers(steps, initialAnswers) : steps.map(() => null)
-  )
-  const [stepIndex, setStepIndex] = useState(() =>
-    initialAnswers && initialAnswers.length > 0 ? firstUnansweredIndex(steps, reconstructStepAnswers(steps, initialAnswers)) : 0
-  )
+  const [stepAnswers, setStepAnswers] = useState<(QuizAnswer[] | null)[]>(() => steps.map(() => null))
+  const [stepIndex, setStepIndex] = useState(0)
   const [finished, setFinished] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   const itemById = useMemo(() => new Map(submodule.items.map((it) => [it.id, it])), [submodule.items])
 
   const current = steps[stepIndex]
@@ -216,26 +205,6 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       next[stepIndex] = results
       return next
     })
-    if (mode === 'quiz' && attemptId) {
-      const occurrences = current.type === 'drag-drop-match'
-        ? current.groupOccurrences ?? []
-        : [current.occurrence ?? 0]
-      void persistQuizAnswers(attemptId, results.map((r, i) => ({ ...r, occurrence: occurrences[i] ?? 0 })))
-    }
-  }
-
-  // Saved as each question is answered, not batched at submit, so an
-  // abandoned quiz can resume instead of losing everything on exit.
-  // Upsert because quiz answers stay editable until submit — resaving
-  // a changed answer must overwrite its row, not duplicate it. occurrence
-  // (see ActivityStep.occurrence) is part of the conflict key because small
-  // submodules can legitimately ask about the same item twice in one quiz.
-  async function persistQuizAnswers(attemptId: string, results: QuizAnswer[]) {
-    const supabase = createClient()
-    await supabase.from('quiz_answers').upsert(
-      results.map((a) => ({ ...a, attempt_id: attemptId, occurrence: a.occurrence ?? 0 })),
-      { onConflict: 'attempt_id,item_id,activity_type,occurrence' },
-    )
   }
 
   function goPrevious() {
@@ -260,12 +229,19 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
     setFinished(true)
   }
 
+  // A quiz is one unbroken attempt — nothing is saved until it's finished
+  // in full, and exiting early (see the exit-confirm dialog below) loses
+  // everything answered so far. Deliberate, not a missing feature: letting
+  // an exited quiz resume with prior answers intact would let a student
+  // leave mid-quiz, look an answer up in Learn/Practice, and come back to
+  // fix just that one question before submitting.
   async function submitQuiz() {
     if (!attemptId) return
     const supabase = createClient()
 
-    // Answers are already saved per-question via persistQuizAnswers —
-    // only the attempt's own finalization fields are left to write.
+    await supabase.from('quiz_answers').insert(
+      answers.map((a) => ({ ...a, attempt_id: attemptId, occurrence: a.occurrence ?? 0 }))
+    )
     await supabase.from('quiz_attempts').update({
       submitted_at: new Date().toISOString(),
       score,
@@ -368,7 +344,7 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
       {/* Progress bar + close */}
       <div className="flex items-center gap-3 px-4 pt-5 pb-3">
         <button
-          onClick={() => router.push(exitHref)}
+          onClick={() => setShowExitConfirm(true)}
           className="shrink-0 rounded-full p-1 hover:bg-muted transition-colors"
           aria-label="Exit"
         >
@@ -448,6 +424,29 @@ export default function ActivityRunner({ module: mod, submodule, mode, attemptId
           {!submitting && <ChevronRight className="h-6 w-6" />}
         </button>
       </div>
+
+      <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Careful!</DialogTitle>
+            <DialogDescription>If you leave, you will lose your answers.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2 sm:justify-center">
+            <Button
+              className="flex-1 bg-red-600 text-white hover:bg-red-700"
+              onClick={() => router.push(exitHref)}
+            >
+              Leave
+            </Button>
+            <Button
+              className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => setShowExitConfirm(false)}
+            >
+              Stay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

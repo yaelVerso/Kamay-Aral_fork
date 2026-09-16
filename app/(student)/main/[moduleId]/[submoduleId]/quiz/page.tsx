@@ -63,18 +63,12 @@ export default async function MainQuizPage({ params }: Props) {
 
   if (!attemptId) redirect(`/main/${moduleId}`)
 
-  const { data: existingAnswers } = await supabase
-    .from('quiz_answers')
-    .select('activity_type, item_id, answer_given, is_correct')
-    .eq('attempt_id', attemptId)
-
   return (
     <QuizGate
       module={mod}
       submodule={submodule}
       attemptId={attemptId}
       backHref={`/main/${moduleId}`}
-      initialAnswers={existingAnswers ?? []}
     />
   )
 }
