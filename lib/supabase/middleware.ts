@@ -78,6 +78,13 @@ export async function updateSession(request: NextRequest) {
     return withSecurityHeaders(supabaseResponse)
   }
 
+  // mobile bridge routes (app/api/mobile/**) have no cookie session to redirect
+  // from — the pre-auth ones are deliberately unauthenticated, and audit-log
+  // verifies its own bearer token internally. Never redirect these to /login.
+  if (pathname.startsWith('/api/mobile/')) {
+    return withSecurityHeaders(supabaseResponse)
+  }
+
   function destinationFor(role: string | undefined) {
     if (role === 'admin') return '/admin/overview'
     if (role === 'teacher') return '/teacher/dashboard'

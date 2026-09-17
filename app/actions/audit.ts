@@ -1,21 +1,23 @@
 'use server'
 
+import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-// actor identity is always derived server-side from the session, never passed in
-// never throws — a failed log write shouldn't break the feature it's attached to
-export async function recordAuditLog(payload: {
+export interface AuditLogPayload {
   action: string
   description: string
   sectionId?: string | null
   sectionName?: string | null
-}) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+}
 
+// Shared by the web Server Action below (which derives `user` from the cookie
+// session) and the mobile bridge route (app/api/mobile/audit-log), which
+// verifies the caller's bearer token itself and passes the resulting user in —
+// neither has a cookie-based session to re-derive it from on mobile's side.
+// Never throws — a failed log write shouldn't break the feature it's attached to.
+export async function recordAuditLogForUser(user: User, payload: AuditLogPayload) {
+  try {
     const role = (user.user_metadata?.role as string | undefined) ?? 'student'
     let actorName = user.user_metadata?.full_name as string | undefined
 
@@ -40,6 +42,14 @@ export async function recordAuditLog(payload: {
   } catch {
     // swallow — never surface a logging error to the caller
   }
+}
+
+// actor identity is always derived server-side from the session, never passed in
+export async function recordAuditLog(payload: AuditLogPayload) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  await recordAuditLogForUser(user, payload)
 }
 
 // no session exists yet at a failed login, so this can't reuse recordAuditLog
