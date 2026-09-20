@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-r
 import { Button } from '@/components/ui/button'
 import ResetAttemptButton from '@/components/teacher/ResetAttemptButton'
 import AttemptReview from '@/components/shared/AttemptReview'
-import { getMasteryFeedback } from '@/lib/bkt'
 import type { SubModule } from '@/content/types'
 
 interface AttemptRow {
@@ -42,8 +41,6 @@ interface Props {
   studentName: string
   sectionId?: string | null
   sectionName?: string | null
-  /** BKT mastery estimate (0–1) for this sub-module, from practice + quiz history combined. Undefined if no attempts yet. */
-  mastery?: number
 }
 
 export default function SubModuleAttemptCard({
@@ -55,7 +52,6 @@ export default function SubModuleAttemptCard({
   studentName,
   sectionId,
   sectionName,
-  mastery,
 }: Props) {
   // attempts is already sorted oldest -> newest; start on the latest.
   const [index, setIndex] = useState(attempts.length - 1)
@@ -78,14 +74,6 @@ export default function SubModuleAttemptCard({
         <div>
           <p className="font-medium">{submodule.title}</p>
           <p className="text-xs text-muted-foreground">Learn: {learnedLabel} items viewed</p>
-          {mastery !== undefined && (
-            <p className={`text-xs mt-0.5 ${
-              mastery >= 0.8 ? 'text-emerald-600' : mastery >= 0.5 ? 'text-amber-600' : 'text-red-600'
-            }`}>
-              <span className="font-semibold">Mastery: {Math.round(mastery * 100)}%</span>
-              {' — '}{getMasteryFeedback(mastery)}
-            </p>
-          )}
         </div>
 
         {attempts.length > 0 && (

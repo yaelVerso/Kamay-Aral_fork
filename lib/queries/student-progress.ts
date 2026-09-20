@@ -1,5 +1,4 @@
 import type { createClient } from '@/lib/supabase/server'
-import { computeMastery, isScorableActivityType, type BktObservation } from '@/lib/bkt'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -30,43 +29,10 @@ export async function getStudentProgress(supabase: SupabaseServerClient, student
         .in('attempt_id', attemptIds)
     : { data: [] }
 
-  // BKT mastery per sub-module — combines this student's practice_answers
-  // with their quiz_answers (timestamped by the parent attempt, since
-  // quiz_answers has no per-answer timestamp of its own).
-  const attemptById = new Map((attempts ?? []).map((a) => [a.id, a]))
-  const observationsBySubmodule = new Map<string, BktObservation[]>()
-  function pushObservation(submoduleId: string, obs: BktObservation) {
-    const list = observationsBySubmodule.get(submoduleId)
-    if (list) list.push(obs)
-    else observationsBySubmodule.set(submoduleId, [obs])
-  }
-
-  for (const p of practice ?? []) {
-    if (isScorableActivityType(p.activity_type)) {
-      pushObservation(p.submodule_id, { activityType: p.activity_type, isCorrect: p.is_correct, at: p.answered_at })
-    }
-  }
-  for (const a of answers ?? []) {
-    if (!isScorableActivityType(a.activity_type)) continue
-    const attempt = attemptById.get(a.attempt_id)
-    if (!attempt) continue
-    pushObservation(attempt.submodule_id, {
-      activityType: a.activity_type,
-      isCorrect: a.is_correct,
-      at: attempt.submitted_at ?? attempt.started_at,
-    })
-  }
-
-  const masteryBySubmodule: Record<string, number> = {}
-  for (const [submoduleId, observations] of observationsBySubmodule) {
-    masteryBySubmodule[submoduleId] = computeMastery(observations)
-  }
-
   return {
     learnProgress: learnProgress ?? [],
     attempts: attempts ?? [],
     answers: answers ?? [],
     practiceAnswers: practice ?? [],
-    masteryBySubmodule,
   }
 }
