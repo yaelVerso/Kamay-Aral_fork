@@ -367,9 +367,7 @@ create policy "Admin: full access quiz_answers" on public.quiz_answers
 -- One row per scorable answer given in Activity (practice) mode.
 -- Unlike quizzes, practice is freely repeatable — there's no
 -- attempt/gating concept, so answers are logged directly as they're
--- submitted rather than grouped under a parent attempt row. This is
--- also the shape mastery scoring (BKT) wants: a plain timestamped
--- stream of per-item correct/incorrect events.
+-- submitted rather than grouped under a parent attempt row.
 -- ============================================================
 create table public.practice_answers (
   id uuid primary key default gen_random_uuid(),
