@@ -78,8 +78,6 @@ export default async function SectionDetailPage({ params }: Props) {
         students={studentRows}
         attempts={(attempts ?? []).map((a) => ({ ...a, submitted_at: a.submitted_at! }))}
         enabledSubmoduleIds={enabledSubmoduleIds}
-        isEnabled={isEnabled}
-        customModules={customModules}
         studentHref={(studentId) => `/teacher/sections/${sectionId}/students/${studentId}`}
         allowCreateStudent={false}
       />

@@ -15,9 +15,8 @@ interface Props {
 /**
  * Module-centric quiz control — lives on a sub-module's page in Modules
  * Management (both built-in and custom), mirroring AssignModuleSections'
- * pattern. The section page still shows a read-only summary of the same
- * quiz_settings data (SectionDetailView), but this is the only place it's
- * actually changed from.
+ * pattern. This is the only place quiz_settings is changed from — the
+ * section page no longer shows a duplicate read-only summary of it.
  */
 export default function QuizSectionAssignment({ submoduleId, submoduleTitle, sections, enabledSectionIds }: Props) {
   if (sections.length === 0) {
