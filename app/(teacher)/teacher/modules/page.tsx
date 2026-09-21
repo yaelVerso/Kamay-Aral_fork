@@ -22,10 +22,11 @@ export default async function TeacherModulesPage() {
   const { data: adminModules } = await supabase
     .from('admin_modules')
     .select('id, title, icon, order')
+    .eq('is_active', true)
     .order('order')
   const adminModuleIds = adminModules?.map((m) => m.id) ?? []
   const { data: adminSubmoduleCounts } = adminModuleIds.length > 0
-    ? await supabase.from('admin_submodules').select('module_id').in('module_id', adminModuleIds)
+    ? await supabase.from('admin_submodules').select('module_id').eq('is_active', true).in('module_id', adminModuleIds)
     : { data: [] }
 
   function adminSubmoduleCount(moduleId: string) {

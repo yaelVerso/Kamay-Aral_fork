@@ -5,6 +5,8 @@ import { ChevronLeft, ListChecks } from 'lucide-react'
 import CreateAdminSubmoduleForm from '@/components/admin/CreateAdminSubmoduleForm'
 import EditAdminSubmoduleDialog from '@/components/admin/EditAdminSubmoduleDialog'
 import DeleteAdminModuleButton from '@/components/admin/DeleteAdminModuleButton'
+import ArchiveAdminModuleButton from '@/components/admin/ArchiveAdminModuleButton'
+import { Badge } from '@/components/ui/badge'
 
 interface Props { params: Promise<{ moduleId: string }> }
 
@@ -14,14 +16,14 @@ export default async function AdminModuleDetailPage({ params }: Props) {
 
   const { data: mod } = await supabase
     .from('admin_modules')
-    .select('id, title, description, icon')
+    .select('id, title, description, icon, is_active')
     .eq('id', moduleId)
     .single()
   if (!mod) notFound()
 
   const { data: submodules } = await supabase
     .from('admin_submodules')
-    .select('id, title, short_title, order')
+    .select('id, title, short_title, order, is_active')
     .eq('module_id', moduleId)
     .order('order')
 
@@ -44,8 +46,12 @@ export default async function AdminModuleDetailPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-2xl">{mod.icon}</span>
             <h1 className="text-2xl font-bold">{mod.title}</h1>
+            {!mod.is_active && <Badge variant="secondary">Archived</Badge>}
           </div>
-          <DeleteAdminModuleButton moduleId={mod.id} moduleTitle={mod.title} />
+          <div className="flex items-center gap-2">
+            <ArchiveAdminModuleButton moduleId={mod.id} moduleTitle={mod.title} isActive={mod.is_active} />
+            <DeleteAdminModuleButton moduleId={mod.id} moduleTitle={mod.title} />
+          </div>
         </div>
         {mod.description && <p className="text-sm text-muted-foreground mt-1">{mod.description}</p>}
       </div>
@@ -60,14 +66,17 @@ export default async function AdminModuleDetailPage({ params }: Props) {
             <Link
               key={sm.id}
               href={`/admin/modules/${mod.id}/${sm.id}`}
-              className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
+              className={`flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow ${sm.is_active ? '' : 'opacity-60'}`}
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
                   <ListChecks className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium">{sm.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{sm.title}</p>
+                    {!sm.is_active && <Badge variant="secondary">Archived</Badge>}
+                  </div>
                   <p className="text-sm text-muted-foreground">{signCount(sm.id)} sign{signCount(sm.id) === 1 ? '' : 's'}</p>
                 </div>
               </div>

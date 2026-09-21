@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { getStudentProgress } from '@/lib/queries/student-progress'
+import { getReportableModulesForSection, toPickableFromModules } from '@/lib/queries/reportModules'
 import StudentProgressView from '@/components/shared/StudentProgressView'
 import StudentInfoCard from '@/components/shared/StudentInfoCard'
 import AccountStatusToggle from '@/components/admin/AccountStatusToggle'
@@ -10,6 +11,7 @@ import EditStudentDialog from '@/components/admin/EditStudentDialog'
 import ResendInviteButton from '@/components/admin/ResendInviteButton'
 import { deactivateStudentAction, reactivateStudentAction, resendStudentInviteAction } from '@/app/actions/admin'
 import { Badge } from '@/components/ui/badge'
+import GenerateReportButton from '@/components/shared/GenerateReportButton'
 
 interface Props { params: Promise<{ studentId: string }> }
 
@@ -43,7 +45,11 @@ export default async function AdminStudentProfilePage({ params }: Props) {
     teacherName: teacherNameById.get(s.teacher_id) ?? 'Unknown',
   }))
 
-  const { learnProgress, attempts, answers, practiceAnswers } = await getStudentProgress(supabase, studentId)
+  const [{ learnProgress, attempts, answers, practiceAnswers }, allModules] = await Promise.all([
+    getStudentProgress(supabase, studentId),
+    getReportableModulesForSection(supabase, student.section_id),
+  ])
+  const pickableModules = toPickableFromModules(allModules)
 
   return (
     <div className="space-y-6">
@@ -63,6 +69,7 @@ export default async function AdminStudentProfilePage({ params }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <GenerateReportButton studentId={student.id} studentName={student.full_name} modules={pickableModules} />
           <EditStudentDialog
             studentId={student.id}
             firstName={student.first_name ?? ''}
@@ -90,6 +97,7 @@ export default async function AdminStudentProfilePage({ params }: Props) {
         studentName={student.full_name}
         sectionId={student.section_id}
         sectionName={section?.name}
+        modules={allModules}
         learnProgress={learnProgress}
         attempts={attempts}
         answers={answers}

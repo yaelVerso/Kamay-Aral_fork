@@ -21,6 +21,7 @@ export default async function AdminContentModuleDetailPage({ params }: Props) {
     .from('admin_modules')
     .select('id, title, description, icon')
     .eq('id', moduleId)
+    .eq('is_active', true)
     .maybeSingle()
   if (!mod) notFound()
 
@@ -28,6 +29,7 @@ export default async function AdminContentModuleDetailPage({ params }: Props) {
     .from('admin_submodules')
     .select('id, title')
     .eq('module_id', moduleId)
+    .eq('is_active', true)
     .order('order')
 
   const submoduleIds = (submodules ?? []).map((s) => s.id)

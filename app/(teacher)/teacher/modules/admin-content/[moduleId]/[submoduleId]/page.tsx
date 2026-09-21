@@ -16,12 +16,13 @@ export default async function AdminContentSubmoduleDetailPage({ params }: Props)
     .from('admin_modules')
     .select('id, title')
     .eq('id', moduleId)
+    .eq('is_active', true)
     .maybeSingle()
   if (!mod) notFound()
 
   const [{ data: submodule }, { data: signs }] = await Promise.all([
-    supabase.from('admin_submodules').select('id, title').eq('id', submoduleId).eq('module_id', moduleId).maybeSingle(),
-    supabase.from('admin_signs').select('id, label').eq('submodule_id', submoduleId).order('order'),
+    supabase.from('admin_submodules').select('id, title').eq('id', submoduleId).eq('module_id', moduleId).eq('is_active', true).maybeSingle(),
+    supabase.from('admin_signs').select('id, label').eq('submodule_id', submoduleId).eq('is_active', true).order('order'),
   ])
   if (!submodule) notFound()
 

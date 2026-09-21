@@ -600,6 +600,13 @@ create table public.admin_modules (
   icon text not null default '📚',
   color text not null default 'bg-[#BBE587] shadow-[0_4px_0_#82B740] hover:bg-[#A6E05F]',
   "order" integer not null default 0,
+  -- Archived (not deleted) content is hidden from students/teachers but the
+  -- row stays intact, so quiz_settings/quiz_attempts/practice_answers that
+  -- already reference it (via an unconstrained text submodule_id, not an FK)
+  -- keep resolving instead of silently orphaning. Delete still exists
+  -- alongside this for now, for cleaning up test data — archive is the
+  -- intended path once real content/history exists.
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 alter table public.admin_modules enable row level security;
@@ -616,6 +623,7 @@ create table public.admin_submodules (
   title text not null,
   short_title text not null,
   "order" integer not null default 0,
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 alter table public.admin_submodules enable row level security;
@@ -639,6 +647,7 @@ create table public.admin_signs (
   image_url text,
   accepted_answers text[] not null default '{}',
   "order" integer not null default 0,
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 alter table public.admin_signs enable row level security;
