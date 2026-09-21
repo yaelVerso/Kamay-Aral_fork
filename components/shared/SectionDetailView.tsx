@@ -1,12 +1,9 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
-import { MODULES } from '@/content/registry'
 import CreateStudentDialog from '@/components/shared/CreateStudentDialog'
 import AddExistingStudentDialog from '@/components/shared/AddExistingStudentDialog'
 import RemoveFromSectionButton from '@/components/shared/RemoveFromSectionButton'
-import ModuleAccordion from '@/components/shared/ModuleAccordion'
 import SectionPerformanceList from '@/components/shared/SectionPerformanceList'
-import type { CustomModuleSummary } from '@/lib/queries/customContent'
 
 interface StudentRow {
   id: string
@@ -30,14 +27,11 @@ interface Props {
   students: StudentRow[]
   attempts: Attempt[]
   enabledSubmoduleIds: string[]
-  isEnabled: (submoduleId: string) => boolean
   studentHref: (studentId: string) => string
   allowCreateStudent?: boolean
-  /** Custom modules assigned to this section — shown in Quiz Settings alongside the built-in ones. */
-  customModules?: CustomModuleSummary[]
 }
 
-export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, isEnabled, studentHref, allowCreateStudent = true, customModules = [] }: Props) {
+export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, studentHref, allowCreateStudent = true }: Props) {
   return (
     <>
       <div>
@@ -86,39 +80,6 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
           students={students.map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id) }))}
           attempts={attempts}
           enabledSubmoduleIds={enabledSubmoduleIds}
-        />
-      </div>
-
-      <Separator />
-
-      <div>
-        <h2 className="font-semibold mb-1">Quiz Settings</h2>
-        <p className="text-sm text-muted-foreground mb-3">
-          Read-only overview for this section — change these in Modules Management, on each sub-module&apos;s page.
-        </p>
-        <ModuleAccordion
-          sections={[
-            ...MODULES.filter((mod) => mod.subModules.length > 0),
-            ...customModules.filter((mod) => mod.subModules.length > 0),
-          ].map((mod) => ({
-            id: mod.id,
-            title: mod.title,
-            icon: mod.icon,
-            content: (
-              <>
-                {mod.subModules.map((sm) => (
-                  <div key={sm.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 shadow-sm">
-                    <p className="font-medium text-sm">{sm.title}</p>
-                    <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
-                      isEnabled(sm.id) ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {isEnabled(sm.id) ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
-                ))}
-              </>
-            ),
-          }))}
         />
       </div>
     </>

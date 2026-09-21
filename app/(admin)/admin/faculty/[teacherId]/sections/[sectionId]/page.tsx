@@ -77,8 +77,6 @@ export default async function AdminSectionDetailPage({ params }: Props) {
         students={studentRows}
         attempts={(attempts ?? []).map((a) => ({ ...a, submitted_at: a.submitted_at! }))}
         enabledSubmoduleIds={enabledSubmoduleIds}
-        isEnabled={isEnabled}
-        customModules={customModules}
         studentHref={(studentId) => `/admin/students/${studentId}`}
       />
     </div>

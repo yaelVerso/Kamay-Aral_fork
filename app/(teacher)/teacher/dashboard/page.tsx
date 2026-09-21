@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { MODULES } from '@/content/registry'
 import Link from 'next/link'
 import { Users, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -121,23 +120,6 @@ export default async function TeacherDashboardPage() {
             </Link>
           </div>
         )}
-      </div>
-
-      <div>
-        <h2 className="font-semibold mb-3">Modules</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {MODULES.map((mod) => (
-            <div key={mod.id} className={`rounded-xl border bg-card p-3 shadow-sm ${mod.subModules.length === 0 ? 'opacity-50' : ''}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">{mod.icon}</span>
-                <p className="text-xs font-semibold leading-tight">{mod.title}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {mod.subModules.length > 0 ? `${mod.subModules.length} sub-modules` : 'Coming soon'}
-              </p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )
