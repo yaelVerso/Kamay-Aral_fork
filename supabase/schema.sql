@@ -634,9 +634,7 @@ create policy "AdminSubmodules: admin owns" on public.admin_submodules
 create policy "AdminSubmodules: everyone reads" on public.admin_submodules
   for select using (true);
 
--- video_url accepts a YouTube link, same as custom_signs — no variations
--- table for admin content yet (that's planned future work, alongside
--- teacher-contributed variations with per-teacher priority).
+-- video_url accepts a YouTube link, same as custom_signs.
 create table public.admin_signs (
   id uuid primary key default gen_random_uuid(),
   submodule_id uuid not null references public.admin_submodules(id) on delete cascade,
@@ -656,6 +654,28 @@ create policy "AdminSigns: admin owns" on public.admin_signs
   for all using (public.is_admin());
 
 create policy "AdminSigns: everyone reads" on public.admin_signs
+  for select using (true);
+
+-- ============================================================
+-- ADMIN SIGN VIDEOS
+-- Extra video variations for an admin sign (e.g. a different signer or
+-- regional variant) — mirrors custom_sign_videos. admin_signs.video_url
+-- stays the primary/default video; this table only holds alternates.
+-- ============================================================
+create table public.admin_sign_videos (
+  id uuid primary key default gen_random_uuid(),
+  sign_id uuid not null references public.admin_signs(id) on delete cascade,
+  video_url text not null,
+  label text,
+  "order" integer not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.admin_sign_videos enable row level security;
+
+create policy "AdminSignVideos: admin owns" on public.admin_sign_videos
+  for all using (public.is_admin());
+
+create policy "AdminSignVideos: everyone reads" on public.admin_sign_videos
   for select using (true);
 
 -- ============================================================
@@ -822,6 +842,7 @@ create index if not exists idx_custom_signs_submodule_id on public.custom_signs 
 create index if not exists idx_custom_sign_videos_sign_id on public.custom_sign_videos (sign_id);
 create index if not exists idx_admin_submodules_module_id on public.admin_submodules (module_id);
 create index if not exists idx_admin_signs_submodule_id on public.admin_signs (submodule_id);
+create index if not exists idx_admin_sign_videos_sign_id on public.admin_sign_videos (sign_id);
 create index if not exists idx_admin_sign_teacher_overrides_sign_id on public.admin_sign_teacher_overrides (admin_sign_id);
 create index if not exists idx_admin_sign_teacher_overrides_teacher_id on public.admin_sign_teacher_overrides (teacher_id);
 create index if not exists idx_custom_module_sections_section_id on public.custom_module_sections (section_id);
@@ -850,6 +871,7 @@ grant select, insert, update, delete on public.custom_sign_videos to authenticat
 grant select, insert, update, delete on public.admin_modules to authenticated, service_role;
 grant select, insert, update, delete on public.admin_submodules to authenticated, service_role;
 grant select, insert, update, delete on public.admin_signs to authenticated, service_role;
+grant select, insert, update, delete on public.admin_sign_videos to authenticated, service_role;
 grant select, insert, update, delete on public.admin_sign_teacher_overrides to authenticated, service_role;
 grant select, insert, update, delete on public.custom_module_sections to authenticated, service_role;
 grant select on public.user_roles to authenticated, service_role;

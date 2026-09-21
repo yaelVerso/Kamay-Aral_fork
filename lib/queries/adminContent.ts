@@ -19,11 +19,22 @@ interface AdminSignRow {
   accepted_answers: string[]
 }
 
+interface AdminSignVideoRow {
+  id: string
+  sign_id: string
+  video_url: string
+  label: string | null
+}
+
 // A teacher's override replaces the primary video everywhere (Learn,
 // Practice, and Quiz) for their own students — admin's original becomes a
 // Learn-mode-only variation instead of just vanishing, reusing the exact
 // picker UI already built for a teacher's own custom-sign variations.
-function mapSign(row: AdminSignRow, overrideUrl?: string): SignItem {
+// Admin-authored variations (admin_sign_videos) are always additive on top
+// of whichever video ends up primary.
+function mapSign(row: AdminSignRow, variations: AdminSignVideoRow[], overrideUrl?: string): SignItem {
+  const authoredVariations = variations.map((v) => ({ id: v.id, url: v.video_url, label: v.label }))
+
   if (overrideUrl) {
     return {
       id: row.id,
@@ -32,7 +43,7 @@ function mapSign(row: AdminSignRow, overrideUrl?: string): SignItem {
       videoPath: overrideUrl,
       imagePath: row.image_url ?? undefined,
       acceptedAnswers: row.accepted_answers,
-      videoVariations: [{ id: `${row.id}::admin-original`, url: row.video_url, label: null }],
+      videoVariations: [{ id: `${row.id}::admin-original`, url: row.video_url, label: null }, ...authoredVariations],
     }
   }
   return {
@@ -42,7 +53,26 @@ function mapSign(row: AdminSignRow, overrideUrl?: string): SignItem {
     videoPath: row.video_url,
     imagePath: row.image_url ?? undefined,
     acceptedAnswers: row.accepted_answers,
+    videoVariations: authoredVariations.length > 0 ? authoredVariations : undefined,
   }
+}
+
+async function getVariationsBySignId(supabase: SupabaseServerClient, signIds: string[]): Promise<Map<string, AdminSignVideoRow[]>> {
+  const map = new Map<string, AdminSignVideoRow[]>()
+  if (signIds.length === 0) return map
+
+  const { data } = await supabase
+    .from('admin_sign_videos')
+    .select('id, sign_id, video_url, label')
+    .in('sign_id', signIds)
+    .order('order')
+
+  for (const row of data ?? []) {
+    const list = map.get(row.sign_id)
+    if (list) list.push(row)
+    else map.set(row.sign_id, [row])
+  }
+  return map
 }
 
 /** The current user's teacher, if they're a student — null for a teacher/admin viewer, or an unassigned student. */
@@ -106,14 +136,18 @@ export async function getAdminModuleTree(supabase: SupabaseServerClient, moduleI
         .order('order')
     : { data: [] }
 
-  const overridesBySignId = await getOverridesBySignId(supabase, (signs ?? []).map((s) => s.id), teacherId)
+  const signIds = (signs ?? []).map((s) => s.id)
+  const [overridesBySignId, variationsBySignId] = await Promise.all([
+    getOverridesBySignId(supabase, signIds, teacherId),
+    getVariationsBySignId(supabase, signIds),
+  ])
 
   const subModules: SubModule[] = (submodules ?? []).map((sm) => ({
     id: sm.id,
     moduleId: mod.id,
     title: sm.title,
     shortTitle: sm.short_title,
-    items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, overridesBySignId.get(s.id))),
+    items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, variationsBySignId.get(s.id) ?? [], overridesBySignId.get(s.id))),
     activitySequence: DEFAULT_ACTIVITY_SEQUENCE,
   }))
 
@@ -198,7 +232,11 @@ export async function getAllAdminModulesWithContent(supabase: SupabaseServerClie
         .order('order')
     : { data: [] }
 
-  const overridesBySignId = await getOverridesBySignId(supabase, (signs ?? []).map((s) => s.id), teacherId)
+  const signIds = (signs ?? []).map((s) => s.id)
+  const [overridesBySignId, variationsBySignId] = await Promise.all([
+    getOverridesBySignId(supabase, signIds, teacherId),
+    getVariationsBySignId(supabase, signIds),
+  ])
 
   return modules.map((mod) => ({
     id: mod.id,
@@ -214,7 +252,7 @@ export async function getAllAdminModulesWithContent(supabase: SupabaseServerClie
         moduleId: mod.id,
         title: sm.title,
         shortTitle: sm.short_title,
-        items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, overridesBySignId.get(s.id))),
+        items: (signs ?? []).filter((s) => s.submodule_id === sm.id).map((s) => mapSign(s, variationsBySignId.get(s.id) ?? [], overridesBySignId.get(s.id))),
         activitySequence: DEFAULT_ACTIVITY_SEQUENCE,
       })),
   }))
