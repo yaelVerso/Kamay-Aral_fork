@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowUp, ArrowDown, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MODULES } from '@/content/registry'
 
 interface StudentBasic {
   id: string
@@ -20,25 +19,32 @@ interface Attempt {
   submitted_at: string
 }
 
+export interface ModuleOption {
+  id: string
+  title: string
+  icon: string
+  subModuleIds: string[]
+}
+
 interface Props {
   students: StudentBasic[]
   attempts: Attempt[]
   enabledSubmoduleIds: string[]
+  /** Built-in + custom + admin modules, combined — powers the filter pills below. */
+  modules: ModuleOption[]
 }
 
-const MODULE_OPTIONS = MODULES.filter((mod) => mod.subModules.length > 0)
-
-export default function SectionPerformanceList({ students, attempts, enabledSubmoduleIds }: Props) {
+export default function SectionPerformanceList({ students, attempts, enabledSubmoduleIds, modules }: Props) {
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const [scope, setScope] = useState<string>('all')
 
   const submoduleToModule = useMemo(() => {
     const map = new Map<string, string>()
-    for (const mod of MODULES) {
-      for (const sm of mod.subModules) map.set(sm.id, mod.id)
+    for (const mod of modules) {
+      for (const smId of mod.subModuleIds) map.set(smId, mod.id)
     }
     return map
-  }, [])
+  }, [modules])
 
   const totalForScope = scope === 'all'
     ? enabledSubmoduleIds.length
@@ -92,7 +98,7 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
         >
           All Modules
         </button>
-        {MODULE_OPTIONS.map((mod) => (
+        {modules.map((mod) => (
           <button
             key={mod.id}
             onClick={() => setScope(mod.id)}

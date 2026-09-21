@@ -3,7 +3,7 @@ import { Separator } from '@/components/ui/separator'
 import CreateStudentDialog from '@/components/shared/CreateStudentDialog'
 import AddExistingStudentDialog from '@/components/shared/AddExistingStudentDialog'
 import RemoveFromSectionButton from '@/components/shared/RemoveFromSectionButton'
-import SectionPerformanceList from '@/components/shared/SectionPerformanceList'
+import SectionPerformanceList, { type ModuleOption } from '@/components/shared/SectionPerformanceList'
 
 interface StudentRow {
   id: string
@@ -27,11 +27,12 @@ interface Props {
   students: StudentRow[]
   attempts: Attempt[]
   enabledSubmoduleIds: string[]
+  modules: ModuleOption[]
   studentHref: (studentId: string) => string
   allowCreateStudent?: boolean
 }
 
-export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, studentHref, allowCreateStudent = true }: Props) {
+export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, modules, studentHref, allowCreateStudent = true }: Props) {
   return (
     <>
       <div>
@@ -80,6 +81,7 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
           students={students.map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id) }))}
           attempts={attempts}
           enabledSubmoduleIds={enabledSubmoduleIds}
+          modules={modules}
         />
       </div>
     </>

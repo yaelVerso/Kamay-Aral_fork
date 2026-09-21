@@ -70,21 +70,21 @@ export type Database = {
         Relationships: []
       }
       admin_modules: {
-        Row: { id: string; title: string; description: string | null; icon: string; color: string; order: number; created_at: string }
-        Insert: { id?: string; title: string; description?: string | null; icon?: string; color?: string; order?: number; created_at?: string }
-        Update: { id?: string; title?: string; description?: string | null; icon?: string; color?: string; order?: number; created_at?: string }
+        Row: { id: string; title: string; description: string | null; icon: string; color: string; order: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; title: string; description?: string | null; icon?: string; color?: string; order?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; title?: string; description?: string | null; icon?: string; color?: string; order?: number; is_active?: boolean; created_at?: string }
         Relationships: []
       }
       admin_submodules: {
-        Row: { id: string; module_id: string; title: string; short_title: string; order: number; created_at: string }
-        Insert: { id?: string; module_id: string; title: string; short_title: string; order?: number; created_at?: string }
-        Update: { id?: string; module_id?: string; title?: string; short_title?: string; order?: number; created_at?: string }
+        Row: { id: string; module_id: string; title: string; short_title: string; order: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; module_id: string; title: string; short_title: string; order?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; module_id?: string; title?: string; short_title?: string; order?: number; is_active?: boolean; created_at?: string }
         Relationships: []
       }
       admin_signs: {
-        Row: { id: string; submodule_id: string; label: string; label_fil: string | null; description: string | null; video_url: string; image_url: string | null; accepted_answers: string[]; order: number; created_at: string }
-        Insert: { id?: string; submodule_id: string; label: string; label_fil?: string | null; description?: string | null; video_url: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
-        Update: { id?: string; submodule_id?: string; label?: string; label_fil?: string | null; description?: string | null; video_url?: string; image_url?: string | null; accepted_answers?: string[]; order?: number; created_at?: string }
+        Row: { id: string; submodule_id: string; label: string; label_fil: string | null; description: string | null; video_url: string; image_url: string | null; accepted_answers: string[]; order: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; submodule_id: string; label: string; label_fil?: string | null; description?: string | null; video_url: string; image_url?: string | null; accepted_answers?: string[]; order?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; submodule_id?: string; label?: string; label_fil?: string | null; description?: string | null; video_url?: string; image_url?: string | null; accepted_answers?: string[]; order?: number; is_active?: boolean; created_at?: string }
         Relationships: []
       }
       admin_sign_teacher_overrides: {

@@ -5,6 +5,9 @@ import { ChevronLeft } from 'lucide-react'
 import AdminSignDialog from '@/components/admin/AdminSignDialog'
 import DeleteAdminSignButton from '@/components/admin/DeleteAdminSignButton'
 import DeleteAdminSubmoduleButton from '@/components/admin/DeleteAdminSubmoduleButton'
+import ArchiveAdminSubmoduleButton from '@/components/admin/ArchiveAdminSubmoduleButton'
+import ArchiveAdminSignButton from '@/components/admin/ArchiveAdminSignButton'
+import { Badge } from '@/components/ui/badge'
 import { parseVideoUrl } from '@/lib/videoEmbed'
 
 interface Props { params: Promise<{ moduleId: string; submoduleId: string }> }
@@ -22,7 +25,7 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
 
   const { data: submodule } = await supabase
     .from('admin_submodules')
-    .select('id, title, short_title')
+    .select('id, title, short_title, is_active')
     .eq('id', submoduleId)
     .eq('module_id', moduleId)
     .single()
@@ -30,7 +33,7 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
 
   const { data: signs } = await supabase
     .from('admin_signs')
-    .select('id, label, label_fil, description, video_url, image_url, accepted_answers, order')
+    .select('id, label, label_fil, description, video_url, image_url, accepted_answers, order, is_active')
     .eq('submodule_id', submoduleId)
     .order('order')
 
@@ -41,8 +44,14 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
           <ChevronLeft className="h-4 w-4" /> {mod.title}
         </Link>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{submodule.title}</h1>
-          <DeleteAdminSubmoduleButton submoduleId={submoduleId} submoduleTitle={submodule.title} moduleId={moduleId} />
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{submodule.title}</h1>
+            {!submodule.is_active && <Badge variant="secondary">Archived</Badge>}
+          </div>
+          <div className="flex items-center gap-2">
+            <ArchiveAdminSubmoduleButton submoduleId={submoduleId} submoduleTitle={submodule.title} isActive={submodule.is_active} />
+            <DeleteAdminSubmoduleButton submoduleId={submoduleId} submoduleTitle={submodule.title} moduleId={moduleId} />
+          </div>
         </div>
       </div>
 
@@ -54,11 +63,12 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
         {signs?.map((sign) => {
           const parsed = parseVideoUrl(sign.video_url)
           return (
-            <div key={sign.id} className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
+            <div key={sign.id} className={`flex items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm ${sign.is_active ? '' : 'opacity-60'}`}>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold">{sign.label}</p>
                   {sign.label_fil && <span className="text-sm text-muted-foreground">({sign.label_fil})</span>}
+                  {!sign.is_active && <Badge variant="secondary">Archived</Badge>}
                 </div>
                 {sign.description && <p className="text-sm text-muted-foreground truncate">{sign.description}</p>}
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -72,6 +82,7 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <AdminSignDialog submoduleId={submoduleId} nextOrder={signs.length} editingSign={sign} />
+                <ArchiveAdminSignButton signId={sign.id} signLabel={sign.label} isActive={sign.is_active} />
                 <DeleteAdminSignButton signId={sign.id} signLabel={sign.label} />
               </div>
             </div>

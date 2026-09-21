@@ -1,4 +1,4 @@
-import { MODULES } from '@/content/registry'
+import type { Module } from '@/content/types'
 import ModuleAccordion from '@/components/shared/ModuleAccordion'
 import SubModuleAttemptCard from '@/components/shared/SubModuleAttemptCard'
 
@@ -16,13 +16,15 @@ interface Props {
   studentName: string
   sectionId?: string | null
   sectionName?: string | null
+  /** Built-in + this section's assigned custom modules + all admin modules, combined. */
+  modules: Module[]
   learnProgress: { module_id: string; submodule_id: string; item_id: string }[]
   attempts: AttemptRow[]
   answers: { attempt_id: string; item_id: string; activity_type: string; answer_given: string | null; is_correct: boolean }[]
   practiceAnswers?: { submodule_id: string; item_id: string; activity_type: string; is_correct: boolean }[]
 }
 
-export default function StudentProgressView({ studentName, sectionId, sectionName, learnProgress, attempts, answers, practiceAnswers = [] }: Props) {
+export default function StudentProgressView({ studentName, sectionId, sectionName, modules, learnProgress, attempts, answers, practiceAnswers = [] }: Props) {
   function learnedCount(moduleId: string, submoduleId: string, totalItems: number) {
     const viewed = learnProgress.filter(
       (p) => p.module_id === moduleId && p.submodule_id === submoduleId
@@ -67,7 +69,7 @@ export default function StudentProgressView({ studentName, sectionId, sectionNam
         </div>
       </div>
       <ModuleAccordion
-      sections={MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => {
+      sections={modules.filter((mod) => mod.subModules.length > 0).map((mod) => {
         const avg = moduleAverage(mod.id, mod.subModules.map((sm) => sm.id))
         return {
         id: mod.id,

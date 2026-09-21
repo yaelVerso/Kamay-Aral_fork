@@ -85,6 +85,7 @@ export async function getAdminModuleTree(supabase: SupabaseServerClient, moduleI
     .from('admin_modules')
     .select('id, title, description, icon, color, order')
     .eq('id', moduleId)
+    .eq('is_active', true)
     .maybeSingle()
   if (!mod) return null
 
@@ -92,6 +93,7 @@ export async function getAdminModuleTree(supabase: SupabaseServerClient, moduleI
     .from('admin_submodules')
     .select('id, title, short_title, order')
     .eq('module_id', moduleId)
+    .eq('is_active', true)
     .order('order')
 
   const submoduleIds = (submodules ?? []).map((s) => s.id)
@@ -100,6 +102,7 @@ export async function getAdminModuleTree(supabase: SupabaseServerClient, moduleI
         .from('admin_signs')
         .select('id, submodule_id, label, label_fil, video_url, image_url, accepted_answers, order')
         .in('submodule_id', submoduleIds)
+        .eq('is_active', true)
         .order('order')
     : { data: [] }
 
@@ -141,6 +144,7 @@ export async function getAllAdminModules(supabase: SupabaseServerClient): Promis
   const { data: modules } = await supabase
     .from('admin_modules')
     .select('id, title, icon')
+    .eq('is_active', true)
     .order('order')
   if (!modules || modules.length === 0) return []
 
@@ -149,6 +153,7 @@ export async function getAllAdminModules(supabase: SupabaseServerClient): Promis
     .from('admin_submodules')
     .select('id, module_id, title')
     .in('module_id', moduleIds)
+    .eq('is_active', true)
     .order('order')
 
   return modules.map((mod) => ({
@@ -171,6 +176,7 @@ export async function getAllAdminModulesWithContent(supabase: SupabaseServerClie
   const { data: modules } = await supabase
     .from('admin_modules')
     .select('id, title, description, icon, color, order')
+    .eq('is_active', true)
     .order('order')
   if (!modules || modules.length === 0) return []
 
@@ -179,6 +185,7 @@ export async function getAllAdminModulesWithContent(supabase: SupabaseServerClie
     .from('admin_submodules')
     .select('id, module_id, title, short_title, order')
     .in('module_id', moduleIds)
+    .eq('is_active', true)
     .order('order')
 
   const submoduleIds = (submodules ?? []).map((s) => s.id)
@@ -187,6 +194,7 @@ export async function getAllAdminModulesWithContent(supabase: SupabaseServerClie
         .from('admin_signs')
         .select('id, submodule_id, label, label_fil, video_url, image_url, accepted_answers, order')
         .in('submodule_id', submoduleIds)
+        .eq('is_active', true)
         .order('order')
     : { data: [] }
 

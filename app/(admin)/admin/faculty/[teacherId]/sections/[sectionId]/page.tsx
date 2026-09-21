@@ -3,9 +3,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import SectionDetailView from '@/components/shared/SectionDetailView'
+import type { ModuleOption } from '@/components/shared/SectionPerformanceList'
 import DeleteSectionButton from '@/components/shared/DeleteSectionButton'
+import GenerateSectionReportButton from '@/components/shared/GenerateSectionReportButton'
 import { MODULES } from '@/content/registry'
 import { getCustomModulesForSection } from '@/lib/queries/customContent'
+import { getAllAdminModules } from '@/lib/queries/adminContent'
+import { getPickableModulesForSection } from '@/lib/queries/reportModules'
 
 interface Props { params: Promise<{ teacherId: string; sectionId: string }> }
 
@@ -13,11 +17,13 @@ export default async function AdminSectionDetailPage({ params }: Props) {
   const { teacherId, sectionId } = await params
   const supabase = await createClient()
 
-  const [{ data: section }, { data: students }, { data: quizSettings }, customModules] = await Promise.all([
+  const [{ data: section }, { data: students }, { data: quizSettings }, customModules, adminModules, pickableModules] = await Promise.all([
     supabase.from('sections').select('id, name, teacher_id').eq('id', sectionId).single(),
     supabase.from('students').select('id, full_name').eq('section_id', sectionId).order('full_name'),
     supabase.from('quiz_settings').select('submodule_id, enabled').eq('section_id', sectionId),
     getCustomModulesForSection(supabase, sectionId),
+    getAllAdminModules(supabase),
+    getPickableModulesForSection(supabase, sectionId),
   ])
 
   if (!section || section.teacher_id !== teacherId) notFound()
@@ -39,6 +45,13 @@ export default async function AdminSectionDetailPage({ params }: Props) {
   const enabledSubmoduleIds = [
     ...MODULES.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
     ...customModules.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
+    ...adminModules.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
+  ]
+
+  const moduleOptions: ModuleOption[] = [
+    ...MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
+    ...customModules.map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
+    ...adminModules.map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
   ]
 
   const studentRows = (students ?? []).map((student) => {
@@ -68,7 +81,10 @@ export default async function AdminSectionDetailPage({ params }: Props) {
           </Link>
           <h1 className="text-2xl font-bold">Section: {section.name}</h1>
         </div>
-        <DeleteSectionButton sectionId={sectionId} sectionName={section.name} redirectTo={`/admin/faculty/${teacherId}`} />
+        <div className="flex items-center gap-2">
+          <GenerateSectionReportButton sectionId={sectionId} sectionName={section.name} modules={pickableModules} />
+          <DeleteSectionButton sectionId={sectionId} sectionName={section.name} redirectTo={`/admin/faculty/${teacherId}`} />
+        </div>
       </div>
 
       <SectionDetailView
@@ -77,6 +93,7 @@ export default async function AdminSectionDetailPage({ params }: Props) {
         students={studentRows}
         attempts={(attempts ?? []).map((a) => ({ ...a, submitted_at: a.submitted_at! }))}
         enabledSubmoduleIds={enabledSubmoduleIds}
+        modules={moduleOptions}
         studentHref={(studentId) => `/admin/students/${studentId}`}
       />
     </div>
