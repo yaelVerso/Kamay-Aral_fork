@@ -6,6 +6,8 @@ import CreateAdminSubmoduleForm from '@/components/admin/CreateAdminSubmoduleFor
 import EditAdminSubmoduleDialog from '@/components/admin/EditAdminSubmoduleDialog'
 import DeleteAdminModuleButton from '@/components/admin/DeleteAdminModuleButton'
 import ArchiveAdminModuleButton from '@/components/admin/ArchiveAdminModuleButton'
+import AdminModuleContentCsvImportDialog from '@/components/admin/AdminModuleContentCsvImportDialog'
+import AdminModuleContentCsvExportButton from '@/components/admin/AdminModuleContentCsvExportButton'
 import { Badge } from '@/components/ui/badge'
 
 interface Props { params: Promise<{ moduleId: string }> }
@@ -60,6 +62,8 @@ export default async function AdminModuleDetailPage({ params }: Props) {
         <h2 className="font-semibold">Sub-modules</h2>
         <div className="flex flex-wrap items-start gap-2">
           <CreateAdminSubmoduleForm moduleId={mod.id} nextOrder={submodules?.length ?? 0} />
+          <AdminModuleContentCsvImportDialog moduleId={mod.id} />
+          <AdminModuleContentCsvExportButton moduleId={mod.id} moduleTitle={mod.title} />
         </div>
         <div className="space-y-2">
           {submodules?.map((sm) => (

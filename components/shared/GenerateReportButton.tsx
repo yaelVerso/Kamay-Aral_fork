@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -15,16 +15,14 @@ interface Props {
 }
 
 export default function GenerateReportButton({ studentId, studentName, modules }: Props) {
-  const allModuleIds = useMemo(() => new Set(modules.map((m) => m.id)), [modules])
-
   const [open, setOpen] = useState(false)
   const [phase, setPhase] = useState<'picker' | 'loading' | 'result'>('picker')
-  const [selected, setSelected] = useState<Set<string>>(allModuleIds)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [report, setReport] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   function openPicker() {
-    setSelected(allModuleIds)
+    setSelected(new Set())
     setPhase('picker')
     setOpen(true)
   }

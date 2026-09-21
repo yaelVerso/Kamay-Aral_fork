@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import CreateAdminModuleForm from '@/components/admin/CreateAdminModuleForm'
 import AdminModulesList from '@/components/admin/AdminModulesList'
+import AdminModulesCsvImportDialog from '@/components/admin/AdminModulesCsvImportDialog'
+import AdminModulesCsvExportButton from '@/components/admin/AdminModulesCsvExportButton'
 
 export default async function AdminModulesPage() {
   const supabase = await createClient()
@@ -38,7 +40,16 @@ export default async function AdminModulesPage() {
         </p>
       </div>
 
-      <AdminModulesList modules={rows} createButton={<CreateAdminModuleForm />} />
+      <AdminModulesList
+        modules={rows}
+        createButton={
+          <div className="flex flex-wrap items-start gap-2">
+            <CreateAdminModuleForm />
+            <AdminModulesCsvImportDialog />
+            <AdminModulesCsvExportButton />
+          </div>
+        }
+      />
     </div>
   )
 }

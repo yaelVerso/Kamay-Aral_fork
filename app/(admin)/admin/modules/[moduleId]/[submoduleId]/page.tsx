@@ -7,6 +7,9 @@ import DeleteAdminSignButton from '@/components/admin/DeleteAdminSignButton'
 import DeleteAdminSubmoduleButton from '@/components/admin/DeleteAdminSubmoduleButton'
 import ArchiveAdminSubmoduleButton from '@/components/admin/ArchiveAdminSubmoduleButton'
 import ArchiveAdminSignButton from '@/components/admin/ArchiveAdminSignButton'
+import AdminSignsCsvImportDialog from '@/components/admin/AdminSignsCsvImportDialog'
+import AdminSignsCsvExportButton from '@/components/admin/AdminSignsCsvExportButton'
+import AdminSignVideoVariationsDialog from '@/components/admin/AdminSignVideoVariationsDialog'
 import { Badge } from '@/components/ui/badge'
 import { parseVideoUrl } from '@/lib/videoEmbed'
 
@@ -37,6 +40,15 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
     .eq('submodule_id', submoduleId)
     .order('order')
 
+  const signIds = (signs ?? []).map((s) => s.id)
+  const { data: variations } = signIds.length > 0
+    ? await supabase.from('admin_sign_videos').select('id, sign_id, video_url, label, order').in('sign_id', signIds).order('order')
+    : { data: [] }
+
+  function variationsFor(signId: string) {
+    return (variations ?? []).filter((v) => v.sign_id === signId)
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -57,6 +69,8 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
 
       <div className="flex flex-wrap items-start gap-2">
         <AdminSignDialog submoduleId={submoduleId} nextOrder={signs?.length ?? 0} />
+        <AdminSignsCsvImportDialog submoduleId={submoduleId} nextOrder={signs?.length ?? 0} />
+        <AdminSignsCsvExportButton signs={signs ?? []} submoduleTitle={submodule.title} />
       </div>
 
       <div className="space-y-2">
@@ -81,6 +95,12 @@ export default async function AdminSubmoduleDetailPage({ params }: Props) {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                <AdminSignVideoVariationsDialog
+                  signId={sign.id}
+                  signLabel={sign.label}
+                  nextOrder={variationsFor(sign.id).length}
+                  variations={variationsFor(sign.id)}
+                />
                 <AdminSignDialog submoduleId={submoduleId} nextOrder={signs.length} editingSign={sign} />
                 <ArchiveAdminSignButton signId={sign.id} signLabel={sign.label} isActive={sign.is_active} />
                 <DeleteAdminSignButton signId={sign.id} signLabel={sign.label} />

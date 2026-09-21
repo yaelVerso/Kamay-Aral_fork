@@ -93,6 +93,12 @@ export type Database = {
         Update: { id?: string; admin_sign_id?: string; teacher_id?: string; video_url?: string; created_at?: string }
         Relationships: []
       }
+      admin_sign_videos: {
+        Row: { id: string; sign_id: string; video_url: string; label: string | null; order: number; created_at: string }
+        Insert: { id?: string; sign_id: string; video_url: string; label?: string | null; order?: number; created_at?: string }
+        Update: { id?: string; sign_id?: string; video_url?: string; label?: string | null; order?: number; created_at?: string }
+        Relationships: []
+      }
       custom_sign_videos: {
         Row: { id: string; sign_id: string; video_url: string; label: string | null; order: number; created_at: string }
         Insert: { id?: string; sign_id: string; video_url: string; label?: string | null; order?: number; created_at?: string }
