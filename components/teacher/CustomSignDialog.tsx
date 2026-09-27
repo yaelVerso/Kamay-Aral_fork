@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -15,9 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Upload, X } from 'lucide-react'
 import { recordAuditLog } from '@/app/actions/audit'
 import { parseVideoUrl } from '@/lib/videoEmbed'
+import { uploadCustomSignImageAction } from '@/app/actions/signImages'
+import { MAX_IMAGE_BYTES } from '@/lib/signImagePolicy'
 
 interface EditingSign {
   id: string
@@ -45,9 +47,33 @@ export default function CustomSignDialog({ submoduleId, nextOrder, editingSign }
   const [imageUrl, setImageUrl] = useState(editingSign?.image_url ?? '')
   const [acceptedAnswers, setAcceptedAnswers] = useState(editingSign?.accepted_answers?.join(', ') ?? '')
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   const parsedVideo = videoUrl.trim() ? parseVideoUrl(videoUrl) : null
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error('Image must be 3MB or smaller')
+      return
+    }
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.set('image', file)
+      formData.set('previousUrl', imageUrl)
+      const url = await uploadCustomSignImageAction(formData)
+      setImageUrl(url)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
 
   function resetForm() {
     setLabel(editingSign?.label ?? '')
@@ -160,8 +186,36 @@ export default function CustomSignDialog({ submoduleId, nextOrder, editingSign }
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="sign-image">Image link (optional)</Label>
-            <Input id="sign-image" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." />
+            <Label>Image (optional)</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <div className="flex items-center gap-3">
+              {imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl} alt="" className="h-12 w-12 rounded-md border object-cover" />
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={uploadingImage}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {uploadingImage ? 'Uploading…' : imageUrl ? 'Replace' : 'Upload'}
+              </Button>
+              {imageUrl && (
+                <Button type="button" variant="ghost" size="icon-xs" aria-label="Remove image" onClick={() => setImageUrl('')}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="sign-answers">Accepted spelling answers</Label>

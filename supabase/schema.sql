@@ -786,6 +786,20 @@ values ('branding', 'branding', true)
 on conflict (id) do nothing;
 
 -- ============================================================
+-- SIGN IMAGES STORAGE BUCKET
+-- Public bucket for uploaded sign images (admin_signs and custom_signs).
+-- Upload/replace/delete goes through the service-role client in Server
+-- Actions (see app/actions/signImages.ts) — no client-side storage
+-- policy is needed for writes. Reads are public since sign images
+-- aren't sensitive.
+-- ============================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('sign-images', 'sign-images', true, 3145728, array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+on conflict (id) do update set
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- ============================================================
 -- USER ROLES VIEW
 -- Helper to determine if an auth.user is a teacher or student.
 -- ============================================================
