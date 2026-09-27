@@ -9,6 +9,7 @@ interface StudentBasic {
   id: string
   full_name: string
   href: string
+  is_active?: boolean
 }
 
 interface Attempt {
@@ -139,7 +140,10 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
           <Link
             key={student.id}
             href={student.href}
-            className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm hover:shadow-md transition-shadow"
+            className={cn(
+              'flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm hover:shadow-md transition-shadow',
+              student.is_active === false && 'opacity-50 hover:opacity-75',
+            )}
           >
             <div className="flex items-center gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
@@ -149,7 +153,14 @@ export default function SectionPerformanceList({ students, attempts, enabledSubm
                 {student.full_name[0]?.toUpperCase()}
               </div>
               <div>
-                <p className="font-medium">{student.full_name}</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  {student.full_name}
+                  {student.is_active === false && (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Deactivated
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">{student.completedCount}/{totalForScope} quizzes taken</p>
               </div>
             </div>

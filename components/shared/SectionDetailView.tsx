@@ -4,6 +4,7 @@ import CreateStudentDialog from '@/components/shared/CreateStudentDialog'
 import AddExistingStudentDialog from '@/components/shared/AddExistingStudentDialog'
 import RemoveFromSectionButton from '@/components/shared/RemoveFromSectionButton'
 import SectionPerformanceList, { type ModuleOption } from '@/components/shared/SectionPerformanceList'
+import { cn } from '@/lib/utils'
 
 interface StudentRow {
   id: string
@@ -11,6 +12,7 @@ interface StudentRow {
   avg: number | null
   trend?: 'up' | 'down' | null
   completedCount?: number
+  is_active?: boolean
 }
 
 interface Attempt {
@@ -25,6 +27,7 @@ interface Props {
   sectionId: string
   sectionName: string
   students: StudentRow[]
+  performanceStudents?: StudentRow[]
   attempts: Attempt[]
   enabledSubmoduleIds: string[]
   modules: ModuleOption[]
@@ -32,7 +35,7 @@ interface Props {
   allowCreateStudent?: boolean
 }
 
-export default function SectionDetailView({ sectionId, sectionName, students, attempts, enabledSubmoduleIds, modules, studentHref, allowCreateStudent = true }: Props) {
+export default function SectionDetailView({ sectionId, sectionName, students, performanceStudents, attempts, enabledSubmoduleIds, modules, studentHref, allowCreateStudent = true }: Props) {
   return (
     <>
       <div>
@@ -48,13 +51,23 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
           {students.map((student) => (
             <div
               key={student.id}
-              className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm"
+              className={cn(
+                'flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm',
+                student.is_active === false && 'opacity-50 hover:opacity-75',
+              )}
             >
               <Link href={studentHref(student.id)} className="flex items-center gap-3 flex-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-secondary-soft)] text-sm font-bold text-[var(--brand-secondary)]">
                   {student.full_name[0]?.toUpperCase()}
                 </div>
-                <p className="font-medium">{student.full_name}</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  {student.full_name}
+                  {student.is_active === false && (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Deactivated
+                    </span>
+                  )}
+                </p>
               </Link>
               <div className="flex items-center gap-2">
                 {student.avg !== null && (
@@ -78,7 +91,7 @@ export default function SectionDetailView({ sectionId, sectionName, students, at
         <h2 className="font-semibold mb-1">Section Performance</h2>
         <p className="text-sm text-muted-foreground mb-3">Ranked by quiz average — lowest first highlights who may need attention.</p>
         <SectionPerformanceList
-          students={students.map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id) }))}
+          students={(performanceStudents ?? students).map((s) => ({ id: s.id, full_name: s.full_name, href: studentHref(s.id), is_active: s.is_active }))}
           attempts={attempts}
           enabledSubmoduleIds={enabledSubmoduleIds}
           modules={modules}
