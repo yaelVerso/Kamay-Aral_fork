@@ -10,6 +10,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { PASSWORD_MIN_LENGTH, PASSWORD_HINT, PASSWORD_PLACEHOLDER, isPasswordValid } from '@/lib/passwordPolicy'
 
 export default function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -17,6 +18,10 @@ export default function ChangePasswordForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!currentPassword) {
+      toast.error('Enter your current password')
+      return
+    }
     if (!isPasswordValid(password)) {
       toast.error(PASSWORD_HINT)
       return
@@ -28,9 +33,19 @@ export default function ChangePasswordForm() {
     setLoading(true)
     try {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email) throw new Error('Could not verify your account')
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      })
+      if (verifyError) throw new Error('Current password is incorrect')
+
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
       toast.success('Password updated')
+      setCurrentPassword('')
       setPassword('')
       setConfirmPassword('')
     } catch (err: unknown) {
@@ -42,6 +57,17 @@ export default function ChangePasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="current-password">Current Password</Label>
+        <Input
+          id="current-password"
+          type={showPass ? 'text' : 'password'}
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="Enter current password"
+          required
+        />
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="new-password">New Password</Label>
         <div className="relative">
