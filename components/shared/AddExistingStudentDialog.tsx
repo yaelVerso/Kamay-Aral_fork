@@ -39,6 +39,7 @@ export default function AddExistingStudentDialog({ sectionId }: { sectionId: str
         .from('students')
         .select('id, full_name, email')
         .is('section_id', null)
+        .eq('is_active', true)
         .order('full_name')
       if (error) throw error
       setStudents(data ?? [])

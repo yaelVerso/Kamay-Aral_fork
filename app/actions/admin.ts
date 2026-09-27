@@ -414,10 +414,11 @@ export async function addExistingStudentToSectionAction(payload: { studentId: st
 
   const { data: target } = await client
     .from('students')
-    .select('full_name, section_id')
+    .select('full_name, section_id, is_active')
     .eq('id', payload.studentId)
     .single()
   if (target?.section_id) throw new Error('Student is already assigned to a section')
+  if (target && !target.is_active) throw new Error('Cannot add a deactivated student to a section')
 
   const { error } = await client
     .from('students')

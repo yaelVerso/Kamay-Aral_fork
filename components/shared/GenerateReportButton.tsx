@@ -36,6 +36,10 @@ export default function GenerateReportButton({ studentId, studentName, modules }
     })
   }
 
+  function toggleAll() {
+    setSelected((prev) => (prev.size === modules.length ? new Set() : new Set(modules.map((m) => m.id))))
+  }
+
   async function handleGenerate() {
     setPhase('loading')
     setError(null)
@@ -63,7 +67,7 @@ export default function GenerateReportButton({ studentId, studentName, modules }
           {phase === 'picker' && (
             <>
               <p className="text-sm text-muted-foreground">Choose which modules to include.</p>
-              <ModuleMultiSelect modules={modules} selected={selected} onToggle={toggle} />
+              <ModuleMultiSelect modules={modules} selected={selected} onToggle={toggle} onToggleAll={toggleAll} />
               <DialogFooter>
                 <Button onClick={handleGenerate} disabled={selected.size === 0}>Generate</Button>
               </DialogFooter>
