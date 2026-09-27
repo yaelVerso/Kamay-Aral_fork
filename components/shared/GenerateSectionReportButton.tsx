@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import type { PickableModule } from '@/lib/queries/reportModules'
 import ModuleMultiSelect from '@/components/shared/ModuleMultiSelect'
 import { generateSectionReportAction } from '@/app/actions/report'
+import { downloadReportPdf } from '@/lib/downloadReportPdf'
 
 interface Props {
   sectionId: string
@@ -38,6 +39,11 @@ export default function GenerateSectionReportButton({ sectionId, sectionName, mo
 
   function toggleAll() {
     setSelected((prev) => (prev.size === modules.length ? new Set() : new Set(modules.map((m) => m.id))))
+  }
+
+  function handleDownload() {
+    if (!report) return
+    downloadReportPdf(`${sectionName} — Class Report`, report, `${sectionName}-class-report.pdf`)
   }
 
   async function handleGenerate() {
@@ -75,11 +81,20 @@ export default function GenerateSectionReportButton({ sectionId, sectionName, mo
           )}
 
           {phase !== 'picker' && (
-            <div className="flex-1 overflow-y-auto">
-              {phase === 'loading' && <p className="py-6 text-center text-sm text-muted-foreground">Generating…</p>}
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              {report && <div className="whitespace-pre-wrap text-sm">{report}</div>}
-            </div>
+            <>
+              <div className="flex-1 overflow-y-auto">
+                {phase === 'loading' && <p className="py-6 text-center text-sm text-muted-foreground">Generating…</p>}
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                {report && <div className="whitespace-pre-wrap text-sm">{report}</div>}
+              </div>
+              {report && (
+                <DialogFooter>
+                  <Button variant="outline" className="gap-1.5" onClick={handleDownload}>
+                    <Download className="h-4 w-4" /> Download PDF
+                  </Button>
+                </DialogFooter>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>

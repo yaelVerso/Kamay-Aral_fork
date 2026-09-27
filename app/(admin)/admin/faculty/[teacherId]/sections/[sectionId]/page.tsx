@@ -19,7 +19,7 @@ export default async function AdminSectionDetailPage({ params }: Props) {
 
   const [{ data: section }, { data: students }, { data: quizSettings }, customModules, adminModules, pickableModules] = await Promise.all([
     supabase.from('sections').select('id, name, teacher_id').eq('id', sectionId).single(),
-    supabase.from('students').select('id, full_name').eq('section_id', sectionId).order('full_name'),
+    supabase.from('students').select('id, full_name, is_active').eq('section_id', sectionId).order('full_name'),
     supabase.from('quiz_settings').select('submodule_id, enabled').eq('section_id', sectionId),
     getCustomModulesForSection(supabase, sectionId),
     getAllAdminModules(supabase),
@@ -69,7 +69,7 @@ export default async function AdminSectionDetailPage({ params }: Props) {
       else if (latest < priorAvg) trend = 'down'
     }
 
-    return { id: student.id, full_name: student.full_name, avg, trend, completedCount: studentAttempts.length }
+    return { id: student.id, full_name: student.full_name, avg, trend, completedCount: studentAttempts.length, is_active: student.is_active }
   })
 
   return (
