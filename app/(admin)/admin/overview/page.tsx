@@ -1,15 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { MODULES } from '@/content/registry'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import RecentActivityWidget from '@/components/shared/RecentActivityWidget'
 
 export default async function AdminOverviewPage() {
   const supabase = await createClient()
 
-  const [{ count: teacherCount }, { count: sectionCount }, { count: studentCount }, { data: recentLogs }] = await Promise.all([
+  const [{ count: teacherCount }, { count: sectionCount }, { count: studentCount }, { count: moduleCount }, { data: recentLogs }] = await Promise.all([
     supabase.from('teachers').select('id', { count: 'exact', head: true }),
     supabase.from('sections').select('id', { count: 'exact', head: true }),
     supabase.from('students').select('id', { count: 'exact', head: true }),
+    supabase.from('admin_modules').select('id', { count: 'exact', head: true }).eq('is_active', true),
     supabase
       .from('audit_logs')
       .select('id, actor_name, actor_role, description, created_at')
@@ -54,7 +54,7 @@ export default async function AdminOverviewPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Modules</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{MODULES.length}</p>
+            <p className="text-3xl font-bold">{moduleCount ?? 0}</p>
           </CardContent>
         </Card>
       </div>

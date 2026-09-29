@@ -9,7 +9,7 @@ interface Props {
   module: Module
   submodule: SubModule
   attemptId: string
-  backHref?: string
+  backHref: string
 }
 
 export default function QuizGate({ module: mod, submodule, attemptId, backHref }: Props) {

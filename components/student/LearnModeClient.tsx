@@ -17,8 +17,7 @@ import YoutubeLearnPlayer, { type YoutubePlayerHandle } from '@/components/stude
 interface Props {
   module: Module
   submodule: SubModule
-  /** Defaults to the built-in module route; pass `/class/{id}` for a custom module. */
-  backHref?: string
+  backHref: string
 }
 
 const SPEEDS = [0.5, 0.75, 1] as const
@@ -113,7 +112,7 @@ export default function LearnModeClient({ module: mod, submodule, backHref }: Pr
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-6 pb-3">
         <Link
-          href={backHref ?? `/module/${mod.id}`}
+          href={backHref}
           className="flex items-center gap-1 text-base text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-5 w-5" />

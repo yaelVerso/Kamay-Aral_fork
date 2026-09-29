@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { MODULES } from '@/content/registry'
 import { getAllAdminModulesWithContent, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import Link from 'next/link'
 import ProgressRing from '@/components/student/ProgressRing'
@@ -34,31 +33,6 @@ export default async function DashboardPage() {
       </h2>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-6">
-        {MODULES.map((mod) => {
-          const totalItems = mod.subModules.reduce((sum, sm) => sum + sm.items.length, 0)
-          const percent = moduleProgress(mod.id, totalItems)
-          const hasContent = mod.subModules.length > 0
-
-          return (
-            <Link
-              key={mod.id}
-              href={hasContent ? `/module/${mod.id}` : '#'}
-              className={`relative flex flex-col gap-3 mt-1 rounded-2xl ${mod.color} p-4 transition-all active:scale-95 ${!hasContent ? 'opacity-50 pointer-events-none' : ''
-                }`}
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-3xl lg:text-5xl">{mod.icon}</span>
-                <ProgressRing percent={percent} size={52} strokeWidth={5} />
-              </div>
-              <div>
-                <p className="lg:mt-10 font-extrabold text-white text-xl">{mod.title}</p>
-                <p className="text-xs text-[#fafafabd] mt-0.5">
-                  {hasContent ? `${mod.subModules.length} sections` : 'Coming soon'}
-                </p>
-              </div>
-            </Link>
-          )
-        })}
         {adminModules.map((mod) => {
           const totalItems = mod.subModules.reduce((sum, sm) => sum + sm.items.length, 0)
           const percent = moduleProgress(mod.id, totalItems)

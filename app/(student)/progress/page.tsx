@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { MODULES } from '@/content/registry'
 import { getAssignedCustomModules } from '@/lib/queries/customContent'
 import { getAllAdminModulesWithContent, getTeacherIdForStudent } from '@/lib/queries/adminContent'
 import ProgressRing from '@/components/student/ProgressRing'
@@ -64,7 +63,6 @@ export default async function ProgressPage() {
   }
 
   const sections = [
-    ...MODULES.filter((mod) => mod.subModules.length > 0).map(buildSection),
     ...customModules.filter((mod) => mod.subModules.length > 0).map(buildSection),
     ...adminModules.filter((mod) => mod.subModules.length > 0).map(buildSection),
   ]
