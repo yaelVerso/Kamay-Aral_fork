@@ -17,6 +17,13 @@ export const MODULE_COLOR_PRESETS = [
   { label: 'Pink', value: 'bg-[#F7B2BD] shadow-[0_4px_0_#C97D89] hover:bg-[#F492A0]' },
   { label: 'Purple', value: 'bg-[#C9B6E4] shadow-[0_4px_0_#9A7FC0] hover:bg-[#B69EDA]' },
   { label: 'Orange', value: 'bg-[#FFB584] shadow-[0_4px_0_#D97F42] hover:bg-[#FFA366]' },
+  { label: 'Teal', value: 'bg-[#7FDBCA] shadow-[0_4px_0_#3FA895] hover:bg-[#5FCBB5]' },
+  { label: 'Red', value: 'bg-[#FF9B85] shadow-[0_4px_0_#E85D42] hover:bg-[#FF8266]' },
+  { label: 'Mint', value: 'bg-[#A8E6B0] shadow-[0_4px_0_#5CB86A] hover:bg-[#8ED99A]' },
+  { label: 'Brown', value: 'bg-[#D9B38C] shadow-[0_4px_0_#A67C52] hover:bg-[#C9A176]' },
+  { label: 'Slate', value: 'bg-[#B8C4D0] shadow-[0_4px_0_#7A8B9C] hover:bg-[#A0B0C0]' },
+  { label: 'Indigo', value: 'bg-[#A5A8F0] shadow-[0_4px_0_#6366D1] hover:bg-[#8A8EE8]' },
+  { label: 'Crimson', value: 'bg-[#E14E4E] shadow-[0_4px_0_#9B0505] hover:bg-[#D33939]' },
 ] as const
 
 export default function CreateCustomModuleForm() {

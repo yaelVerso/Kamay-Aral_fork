@@ -36,7 +36,3 @@ export function parseVideoUrl(url: string): ParsedVideo {
 
   return { source: 'unknown', embedUrl: null, id: null }
 }
-
-export function isValidVideoUrl(url: string): boolean {
-  return parseVideoUrl(url).embedUrl !== null
-}

@@ -11,7 +11,8 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { recordAuditLog, recordFailedLoginAttempt } from '@/app/actions/audit'
-import { resolveLoginEmail } from '@/app/actions/auth'
+import { resolveLoginEmail, checkLoginLockout } from '@/app/actions/auth'
+import { formatLockoutDuration } from '@/lib/loginLockout'
 
 function destinationFor(role: string | undefined) {
   if (role === 'admin') return '/admin/overview'
@@ -35,6 +36,13 @@ export default function LoginForm({ systemName, logoUrl }: Props) {
     e.preventDefault()
     setLoading(true)
     try {
+      const lockout = await checkLoginLockout(identifier)
+      if (lockout.locked) {
+        const seconds = lockout.retryAfterSeconds ?? 60
+        toast.error(`Too many failed attempts. Try again in ${formatLockoutDuration(seconds)}.`)
+        return
+      }
+
       const resolved = await resolveLoginEmail(identifier)
       if ('error' in resolved) throw new Error(resolved.error)
 
