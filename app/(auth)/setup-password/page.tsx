@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
 import { PASSWORD_MIN_LENGTH, PASSWORD_HINT, PASSWORD_PLACEHOLDER, isPasswordValid } from '@/lib/passwordPolicy'
+import { clearLoginLockoutAction } from '@/app/actions/auth'
 
 function destinationFor(role: string | undefined) {
   if (role === 'admin') return '/admin/overview'
@@ -84,6 +85,7 @@ export default function SetupPasswordPage() {
       if (error) throw error
 
       const { data: { user } } = await supabase.auth.getUser()
+      if (user) await clearLoginLockoutAction(user.id)
       toast.success('Password set successfully')
       router.push(destinationFor(user?.user_metadata?.role))
       router.refresh()
