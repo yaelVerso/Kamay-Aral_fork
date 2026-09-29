@@ -159,7 +159,7 @@ export default function CustomSignDialog({ submoduleId, nextOrder, editingSign }
               <Input id="sign-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Apple" required />
             </div>
             <div className="flex-1 space-y-1">
-              <Label htmlFor="sign-label-fil">Filipino translation</Label>
+              <Label htmlFor="sign-label-fil">Filipino translation (optional)</Label>
               <Input id="sign-label-fil" value={labelFil} onChange={(e) => setLabelFil(e.target.value)} placeholder="e.g. Mansanas" />
             </div>
           </div>
