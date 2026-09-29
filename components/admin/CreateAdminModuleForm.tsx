@@ -27,11 +27,14 @@ export default function CreateAdminModuleForm() {
     try {
       const supabase = createClient()
       const trimmedTitle = title.trim()
+      const { data: existingModules } = await supabase.from('admin_modules').select('order')
+      const nextOrder = (existingModules ?? []).reduce((max, m) => Math.max(max, m.order + 1), 0)
       const { error } = await supabase.from('admin_modules').insert({
         title: trimmedTitle,
         description: description.trim() || null,
         icon: icon.trim() || '📚',
         color,
+        order: nextOrder,
       })
       if (error) throw new Error(error.message)
       await recordAuditLog({ action: 'admin_module.create', description: `created module "${trimmedTitle}"` })

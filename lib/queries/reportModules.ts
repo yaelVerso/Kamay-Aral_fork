@@ -1,6 +1,5 @@
 import type { Module } from '@/content/types'
 import type { createClient } from '@/lib/supabase/server'
-import { MODULES } from '@/content/registry'
 import { getAllAdminModules, getAllAdminModulesWithContent } from '@/lib/queries/adminContent'
 import { getCustomModulesForSection, getCustomModuleTree } from '@/lib/queries/customContent'
 
@@ -22,21 +21,20 @@ export function toPickableFromModules(modules: Module[]): PickableModule[] {
 }
 
 /**
- * Built-in + this section's assigned custom modules + all (global) admin
- * modules — id/title/icon only, for the report module-picker checklist.
- * sectionId null (unassigned student) simply omits custom modules.
+ * This section's assigned custom modules + all (global) admin modules —
+ * id/title/icon only, for the report module-picker checklist. sectionId
+ * null (unassigned student) simply omits custom modules.
  */
 export async function getPickableModulesForSection(supabase: SupabaseServerClient, sectionId: string | null): Promise<PickableModule[]> {
-  const builtIn = toPickable(MODULES.filter((m) => m.subModules.length > 0))
   const [admin, custom] = await Promise.all([
     getAllAdminModules(supabase),
     sectionId ? getCustomModulesForSection(supabase, sectionId) : Promise.resolve([]),
   ])
-  return [...builtIn, ...toPickable(custom), ...toPickable(admin)]
+  return [...toPickable(custom), ...toPickable(admin)]
 }
 
 /**
- * Same three sources as getPickableModulesForSection, but with full
+ * Same two sources as getPickableModulesForSection, but with full
  * sub-module/sign data — what buildTopicReportData actually needs to
  * compute per-topic percentages and weak-sign breakdowns.
  */
@@ -50,5 +48,5 @@ export async function getReportableModulesForSection(supabase: SupabaseServerCli
     custom = trees.filter((m): m is Module => m !== null)
   }
 
-  return [...MODULES, ...custom, ...admin]
+  return [...custom, ...admin]
 }

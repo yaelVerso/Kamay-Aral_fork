@@ -98,8 +98,9 @@ export default function AdminModulesCsvImportDialog() {
     // collides with an archived one of the same name.
     const { data: existingModules } = await supabase
       .from('admin_modules')
-      .select('id, title')
+      .select('id, title, order')
     const moduleIdByTitle = new Map((existingModules ?? []).map((m) => [m.title.trim().toLowerCase(), m.id]))
+    let moduleOrderCounter = (existingModules ?? []).reduce((max, m) => Math.max(max, m.order + 1), 0)
 
     const existingModuleIds = [...moduleIdByTitle.values()]
     const { data: existingSubmodules } = existingModuleIds.length > 0
@@ -140,10 +141,12 @@ export default function AdminModulesCsvImportDialog() {
           title: moduleTitle,
           icon: row.module_icon?.trim() || '📚',
           description: row.module_description?.trim() || null,
+          order: moduleOrderCounter,
         }).select('id').single()
         if (error || !newModule) { errors.push({ row: rowNum, reason: `failed to create module: ${error?.message}` }); continue }
         moduleId = newModule.id
         moduleIdByTitle.set(moduleKey, moduleId)
+        moduleOrderCounter++
         modulesCreated++
       }
 

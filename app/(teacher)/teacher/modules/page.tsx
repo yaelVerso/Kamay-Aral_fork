@@ -5,7 +5,6 @@ import CreateCustomModuleForm from '@/components/teacher/CreateCustomModuleForm'
 import ModulesCsvImportDialog from '@/components/teacher/ModulesCsvImportDialog'
 import ModulesCsvExportButton from '@/components/teacher/ModulesCsvExportButton'
 import EditCustomModuleDialog from '@/components/teacher/EditCustomModuleDialog'
-import { MODULES } from '@/content/registry'
 
 export default async function TeacherModulesPage() {
   const supabase = await createClient()
@@ -56,7 +55,7 @@ export default async function TeacherModulesPage() {
       <div>
         <h1 className="text-2xl font-bold">Modules Management</h1>
         <p className="text-sm text-muted-foreground">
-          Create your own modules, sub-modules, and signs — separate from the built-in curriculum — and choose which of your sections can see them.
+          Create your own modules, sub-modules, and signs, and choose which of your sections can see them.
         </p>
       </div>
 
@@ -130,31 +129,6 @@ export default async function TeacherModulesPage() {
         {(!adminModules || adminModules.length === 0) && (
           <p className="text-center text-muted-foreground py-4">No admin modules yet.</p>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <div>
-          <h2 className="font-semibold">Built-in Modules</h2>
-          <p className="text-sm text-muted-foreground">Content is fixed — open a sub-module to control its Quiz Settings.</p>
-        </div>
-        {MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => (
-          <Link
-            key={mod.id}
-            href={`/teacher/modules/built-in/${mod.id}`}
-            className="flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-lg">
-                {mod.icon}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{mod.title}</p>
-                <p className="text-sm text-muted-foreground">{mod.subModules.length} sub-module{mod.subModules.length === 1 ? '' : 's'}</p>
-              </div>
-            </div>
-            <span className="text-muted-foreground ml-1">›</span>
-          </Link>
-        ))}
       </div>
     </div>
   )

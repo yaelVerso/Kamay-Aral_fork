@@ -10,8 +10,6 @@ interface Props { params: Promise<{ moduleId: string }> }
  * entirely from /admin/modules, so unlike the custom-module equivalent
  * there's nothing here to create/edit/delete. Its only purpose is linking
  * through to each sub-module's page, where the Quiz Settings control lives.
- * Mirrors teacher/modules/built-in/[moduleId]/page.tsx exactly, since admin
- * content is equally global/visible-to-everyone.
  */
 export default async function AdminContentModuleDetailPage({ params }: Props) {
   const { moduleId } = await params

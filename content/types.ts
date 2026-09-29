@@ -10,9 +10,9 @@ export interface SignItem {
   label: string
   /** Filipino label if different from label */
   labelFil?: string
-  /** Path relative to /public, e.g. "/videos/alphabet/a.mp4" */
+  /** The sign's video URL — a YouTube embed URL for admin/custom content. */
   videoPath: string
-  /** Optional image path relative to /public */
+  /** Optional image URL */
   imagePath?: string
   /**
    * All accepted correct answers for spelling activity.

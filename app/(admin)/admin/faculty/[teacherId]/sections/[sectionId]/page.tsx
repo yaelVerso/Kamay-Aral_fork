@@ -6,7 +6,6 @@ import SectionDetailView from '@/components/shared/SectionDetailView'
 import type { ModuleOption } from '@/components/shared/SectionPerformanceList'
 import DeleteSectionButton from '@/components/shared/DeleteSectionButton'
 import GenerateSectionReportButton from '@/components/shared/GenerateSectionReportButton'
-import { MODULES } from '@/content/registry'
 import { getCustomModulesForSection } from '@/lib/queries/customContent'
 import { getAllAdminModules } from '@/lib/queries/adminContent'
 import { getPickableModulesForSection } from '@/lib/queries/reportModules'
@@ -43,13 +42,11 @@ export default async function AdminSectionDetailPage({ params }: Props) {
     : { data: [] }
 
   const enabledSubmoduleIds = [
-    ...MODULES.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
     ...customModules.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
     ...adminModules.flatMap((mod) => mod.subModules.filter((sm) => isEnabled(sm.id)).map((sm) => sm.id)),
   ]
 
   const moduleOptions: ModuleOption[] = [
-    ...MODULES.filter((mod) => mod.subModules.length > 0).map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
     ...customModules.map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
     ...adminModules.map((mod) => ({ id: mod.id, title: mod.title, icon: mod.icon, subModuleIds: mod.subModules.map((sm) => sm.id) })),
   ]

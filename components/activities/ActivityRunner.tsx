@@ -49,8 +49,7 @@ interface Props {
   submodule: SubModule
   mode: 'activity' | 'quiz'
   attemptId?: string
-  /** Defaults to the built-in module route; pass `/class/{id}/{submoduleId}` for a custom module. */
-  backHref?: string
+  backHref: string
 }
 
 // interleaved per item: Lesson Card A → Sign to Picture A → Spelling A → Lesson Card B → ...
@@ -166,9 +165,9 @@ function buildSteps(submodule: SubModule, mode: 'activity' | 'quiz'): ActivitySt
   return mode === 'quiz' ? buildQuizSteps(submodule) : buildActivitySteps(submodule, submodule.items)
 }
 
-export default function ActivityRunner({ module: mod, submodule, mode, attemptId, backHref }: Props) {
+export default function ActivityRunner({ submodule, mode, attemptId, backHref }: Props) {
   const router = useRouter()
-  const exitHref = backHref ?? `/module/${mod.id}/${submodule.id}`
+  const exitHref = backHref
   const [steps, setSteps] = useState(() => buildSteps(submodule, mode))
   // Practice's item order is randomized once per session, but only here,
   // client-side, after mount — see buildActivitySteps for why. Runs before
